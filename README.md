@@ -1,71 +1,30 @@
-# PixelBlaze LED Art Project
+# PixelBlaze LED Art
 
-Uses [marimapper](https://github.com/TheMariday/marimapper) to scan LED positions with a webcam and upload 3D coordinate maps to a PixelBlaze controller.
+Pattern authoring and LED mapping for PixelBlaze-controlled installations.
 
-## Setup
+## Pattern Maker
 
-Install marimapper as a global tool from the local repo:
-
-```bash
-cd ~/code/marimapper
-uv tool install .
-```
-
-To update after making changes to marimapper:
+`pattern_maker/` is a knowledge system that makes Claude Code an expert PixelBlaze pattern author. It includes reference docs, example patterns, and a static analyzer that enforces PixelBlaze safety rules.
 
 ```bash
-uv tool install . --reinstall
+cd pattern_maker
+
+# Validate a pattern
+uv run python validate.py patterns/egg/lava_flow.js
+
+# Validate all patterns
+uv run python validate.py patterns/
+
+# Run tests
+uv run pytest test_validate.py
 ```
 
-## One-time PixelBlaze setup
+See `pattern_maker/AGENTS.md` for the full pattern authoring rules.
 
-Upload the `marimapper.epe` pattern to the PixelBlaze via its web UI. This is required for marimapper to control individual LEDs during scanning.
+## LED Mapping
 
-## Workflow
-
-### 1. Test the connection
-
-```bash
-marimapper_check_backend pixelblaze --server <ip>
-```
-
-### 2. Scan
-
-Run from the mapping directory for your target (e.g. `egg_mapping/`):
-
-```bash
-cd ~/code/pb/egg_mapping
-marimapper pixelblaze --server <ip>
-```
-
-- Confirm each scan when prompted with `y`
-- Keep the camera still during each scan
-- Move the camera between scans — aim for 3+ views, 6°–20° apart
-- At least some LEDs should overlap between views
-
-### 3. Upload to PixelBlaze
-
-```bash
-marimapper_upload_mapping_to_pixelblaze --server <ip>
-```
-
-Reads `led_map_3d.csv` from the current directory and sends coordinates to the controller.
-
-## Output files
-
-| File | Description |
-|---|---|
-| `led_map_2d_YYYYMMDD-HHMMSS.csv` | 2D pixel detections for one camera view (`index, u, v`) |
-| `led_map_3d.csv` | Reconstructed 3D positions and normals (`index, x, y, z, xn, yn, zn, error`) |
+`egg_mapping/` contains scan data from [marimapper](https://github.com/TheMariday/marimapper), which captures LED positions via webcam and uploads 3D coordinate maps to the PixelBlaze controller.
 
 ## Projects
 
-- `egg_mapping/` — LED mapping scans for the egg installation
-- `pattern_maker/` — PixelBlaze patterns
-
-## Tips
-
-- Run `marimapper pixelblaze --help` for all options (exposure, threshold, LED range, etc.)
-- Use `--exposure` (lower = darker image) and `--threshold` to tune LED detection
-- Use `-v` for verbose output if something seems wrong
-- If reconstruction fails, delete the `led_map_2d_*.csv` files and rescan
+- **egg** — ~1400-1500 LED 3D egg sculpture (first installation)
