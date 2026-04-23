@@ -1,36 +1,27 @@
 ---
 name: palette
-description: Use when the user pastes a cpt-city palette URL, asks to "add a palette" or "grab a palette from cpt-city", or asks how to get palette arrays into a PixelBlaze pattern. Converts a cpt-city URL into a ready-to-paste PixelBlaze gradient-palette block (URL comment + color description + `var <name>_gp = [...]` + `arrayMutate` line). Phase 1 handles URLs only; fuzzy discovery ("warm sunset with purple") is not built yet.
+description: Use when the user pastes a cpt-city palette URL, asks to "add a palette" or "grab a palette from cpt-city", or describes a palette by color/mood ("warm sunset", "something icy", "resembles labradorite", "a palette for a stormy ocean"). Turns URLs or fuzzy descriptions into PixelBlaze-ready gradient-palette blocks using the committed cpt-city index (6000+ palettes).
 ---
 
 # palette
 
-Turn a cpt-city palette URL into a PixelBlaze-ready gradient-palette block.
+Turn a cpt-city URL — or a conversational color/mood description — into a PixelBlaze-ready gradient-palette block.
 
 ## Trigger
 
 Invoke when the user:
 
 - pastes a cpt-city URL (any of: `https://phillips.shef.ac.uk/pub/cpt-city/...`, legacy `soliton.vm.bytemark.co.uk/...`, or a `resource/schemes/<id>` direct-scheme URL),
-- asks for a new palette for a pattern and you need one,
+- describes a palette by **colors or mood** ("warm sunset with purple", "something icy", "resembles labradorite", "stormy ocean", "desert at dusk"),
 - says "add this palette to <pattern file>" with a URL,
-- asks "how do I get a palette" or similar.
+- asks for a new palette for a pattern and you need one.
 
-Do NOT invoke for fuzzy descriptions ("I want something sunset-y"). Phase 1 only supports URLs. If the user describes colors without a URL, respond:
+There are two paths — pick based on what the user gave you:
 
-> Fuzzy palette discovery isn't built yet — please paste a cpt-city URL (e.g. browse https://phillips.shef.ac.uk/pub/cpt-city/ and drop me a link).
+1. **URL path** — they pasted a URL. Run the CLI, show the block, offer to append.
+2. **Discovery path** — they described colors/mood. Search the committed index, present 3–5 candidate swatches, let them pick, then emit the block.
 
-## How to run
-
-From the repo root:
-
-```bash
-cd palette_maker && uv run python palette.py url "<cpt-city-url>"
-```
-
-By default it prints the palette block to stdout and an ANSI 24-bit color swatch to stderr, so `... > out.js` still captures clean code while the swatch stays visible in the terminal. `--no-preview` suppresses the swatch.
-
-Block style (stdout):
+## Block style (both paths produce this)
 
 ```
 //<canonical cpt-city URL>
@@ -43,7 +34,19 @@ var <slug>_gp = [
 arrayMutate(<slug>_gp,(v, i ,a) => v / 255);
 ```
 
-## Workflow
+---
+
+## Path 1 — URL
+
+From the repo root:
+
+```bash
+cd palette_maker && uv run python palette.py url "<cpt-city-url>"
+```
+
+By default it prints the palette block to stdout and an ANSI 24-bit color swatch to stderr, so `... > out.js` still captures clean code while the swatch stays visible in the terminal. `--no-preview` suppresses the swatch.
+
+Workflow:
 
 1. **Run the CLI** with the URL the user gave. It handles URL normalization (legacy hosts, `.png.index.html` suffixes, direct scheme URLs) automatically.
 2. **Show the user the block** exactly as the CLI printed it.
@@ -52,18 +55,127 @@ arrayMutate(<slug>_gp,(v, i ,a) => v / 255);
    - `no CSS3 gradient link found` — URL isn't a palette page; ask the user to double-check.
    - HTTP 4xx/5xx — cpt-city might be transiently down, or URL is wrong.
 
-## Slug override
+---
 
-The slug is derived from the URL's last path segment. If the user needs a specific name (e.g. to avoid a collision with an existing `_gp` variable), pass `--slug <name>`:
+## Path 2 — Discovery by color/mood
+
+The committed index at `palette_maker/data/cpt_city_index.jsonl` has 6000+ palettes — one JSON object per line with `slug`, `author`, `collection`, `url`, `color_names` (dash-joined summary like `teal-purple`), and `stops` (list of `[pos, r, g, b]` tuples). That's enough to score palettes any way the query demands.
+
+**Don't call a fixed `search` subcommand — there isn't one.** Each query needs its own scoring logic. Write per-query Python inline.
+
+### Workflow
+
+1. **Read the index.** It's small enough to load fully:
+
+   ```python
+   import json
+   from pathlib import Path
+   entries = [json.loads(l) for l in Path("palette_maker/data/cpt_city_index.jsonl").open()]
+   ```
+
+2. **Write a scoring function** specific to the user's prompt. Consider:
+   - `color_names` — literal match for explicit colors ("purple", "teal") and mood proxies ("red/orange/yellow" = warm; "blue/cyan/white" = cool/icy).
+   - `stops` — for luminance, saturation, contrast cues. E.g. "labradorite" wants a dark base with a few bright saturated stops.
+   - Stop count — reject palettes that are clearly wrong (e.g. >15 stops for a "simple two-color gradient" request).
+
+   **Strongly prefer hard rejects over soft bonuses.** With 6000+ candidates, a +40 "cool color" bonus gets drowned by palettes that happen to be dark and saturated but are otherwise wrong (e.g. a red/brown sunset when the user asked for labradorite). If the prompt says "cool iridescent," *disqualify* any palette whose name_summary contains red/orange/yellow/brown — don't just bonus the cool ones. Be opinionated; filter aggressively first, then rank what's left.
+
+3. **Rank and keep the top 3–5.** Sort by score, slice, take what you need.
+
+4. **Render an ANSI swatch for each.** Reuse the existing helper:
+
+   ```python
+   from palette_maker.preview import render_swatch
+   from palette_maker.parse import Stop
+   stops = [Stop(*tpl) for tpl in entry["stops"]]
+   swatch = render_swatch(stops)
+   ```
+
+5. **Present them to the user.** Print slug + `author/collection` + URL + swatch for each candidate. Ask which one they want.
+
+   **Critical: let the Bash tool output itself be the presentation.** The swatches are raw ANSI 24-bit escape sequences (`\x1b[48;2;R;G;Bm...`). Claude Code renders ANSI *in the Bash tool output view* but not in assistant-authored markdown — if you summarize the candidates in your reply (prose, a table, a fenced code block of the "results"), the user sees plain text or literal escape bytes, not colors. So: run the script once, let the user see the Bash output directly, and in your reply just say something like "picks above — which one?" Don't re-paste the swatch section.
+
+6. **On pick, emit the block:**
+
+   ```bash
+   cd palette_maker && uv run python palette.py show <slug>
+   ```
+
+   If the slug is ambiguous, the CLI will list candidate `<author>/<collection>/<slug>` paths; re-run with `--author <a>` and/or `--collection <c>`. If the user has an open pattern file, offer to append (same as the URL flow).
+
+### Worked example — "I want a palette that resembles labradorite"
+
+```python
+import json
+from pathlib import Path
+from palette_maker.parse import Stop
+from palette_maker.preview import render_swatch
+
+entries = [json.loads(l) for l in Path("palette_maker/data/cpt_city_index.jsonl").open()]
+
+def luminance(stop):
+    _, r, g, b = stop
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+def saturation(stop):
+    _, r, g, b = stop
+    mx, mn = max(r, g, b), min(r, g, b)
+    return 0 if mx == 0 else (mx - mn) / mx
+
+WARM = {"red", "orange", "yellow", "brown", "pink", "magenta"}
+COOL = {"teal", "cyan", "blue", "green", "purple", "navy"}
+
+def score(entry):
+    stops = entry["stops"]
+    if len(stops) < 3 or len(stops) > 12:
+        return -1
+    names = set(entry["color_names"])
+    # Hard rejects — labradorite is dark & cool-iridescent, not warm.
+    if names & WARM:
+        return -1
+    if not (names & COOL):
+        return -1
+    # Must be dark overall with at least one bright saturated "flash" stop.
+    avg_lum = sum(luminance(s) for s in stops) / len(stops)
+    max_sat = max(saturation(s) for s in stops)
+    if avg_lum > 90:
+        return -1
+    if max_sat < 0.6:
+        return -1
+    # Rank survivors: darker base + more saturated flashes win.
+    return (255 - avg_lum) + 200 * max_sat
+
+ranked = sorted(entries, key=score, reverse=True)[:5]
+for e in ranked:
+    stops = [Stop(*tpl) for tpl in e["stops"]]
+    print(f"{e['slug']}  {e['author']}/{e['collection']}")
+    print(render_swatch(stops))
+    print(e["url"])
+    print()
+```
+
+Then present the output to the user and ask them to pick.
+
+### When results are empty or too many
+
+**Don't give up.** Loosen or tighten filters and retry:
+
+- Empty? Widen the scoring thresholds (e.g. raise the brightness cap, drop a required color-name hit).
+- 100+? Add a cue — stop-count cap, a specific color requirement, a luminance range.
+
+The committed index has 6000+ palettes — something matches almost any prompt.
+
+---
+
+## Slug override (both paths)
+
+The slug is derived from the URL or index entry's last path segment. If the user needs a specific name (e.g. to avoid a collision with an existing `_gp` variable), pass `--slug <name>`:
 
 ```bash
 uv run python palette.py url "<url>" --slug <custom_name>
+uv run python palette.py show <indexed_slug> --slug <custom_name>
 ```
 
-## Not in scope for Phase 1
+## Refreshing the index
 
-- `search` (fuzzy discovery by colors / keywords)
-- `show` (ANSI swatch preview)
-- `index` (local scrape of cpt-city)
-
-These are deferred until Phase 1 has been used in real pattern authoring and the format is confirmed to match what the user actually wants.
+Rare — the committed JSONL is the source of truth for discovery. To rebuild from a fresh cpt-city clone, see `palette_maker/CLAUDE.md` → "Refreshing the palette index".

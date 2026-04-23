@@ -59,6 +59,9 @@ All three render variants can coexist. PB picks the most specific one matching t
 | `log(x)` | Natural logarithm |
 | `log2(x)` | Base-2 logarithm |
 | `random(max)` | Random value 0 to max |
+| `frac(x)` | Fractional part: `x - floor(x)` |
+
+**No `cbrt`, `sign`, `trunc`, `Math.*`, `Number.*`, or JS-style casts.** For cube root use `pow(x, 1/3)`.
 
 ## Trigonometry
 
@@ -94,6 +97,9 @@ Constants: `PI` (3.14159...), `PI2` (6.28318...)
 |---|---|---|
 | `perlin(x, y, z, seed)` | Gradient noise (1D/2D/3D, seed optional) | approx -0.5 to 0.5 |
 | `perlinFbm(x, y, z, octaves)` | Fractal Brownian Motion | wider than perlin |
+| `perlinTurbulence(x, y, z, octaves)` | Abs-value fbm (billowy) | 0+ |
+| `perlinRidge(x, y, z, octaves, offset)` | Ridged multifractal | 0+ |
+| `setPerlinWrap(xPeriod, yPeriod, zPeriod)` | Make perlin tile with integer periods | — |
 
 To normalize perlin to 0–1: `(perlin(x, y, z, seed) + 0.5)`
 
@@ -102,6 +108,21 @@ All parameters except the last are positional — use fewer for lower dimensions
 - `perlin(x, y)` — 2D
 - `perlin(x, y, z)` — 3D
 - `perlin(x, y, z, seed)` — 3D with seed (different seeds = independent noise)
+
+## Seeded PRNG
+
+| Function | Description |
+|---|---|
+| `prngSeed(seed)` | Set the seed for the deterministic PRNG |
+| `prng(max)` | Next pseudo-random value 0–max under the current seed |
+
+Use for per-pixel or per-frame random values that need to be reproducible (e.g. streak phases keyed on column index). Seed, call `prng` as many times as needed, re-seed to get the same sequence again.
+
+## Curves
+
+| Function | Description |
+|---|---|
+| `bezierCubic(t, p0, p1, p2, p3)` | Cubic Bézier interpolation at t∈[0,1] |
 
 ## Waveforms
 
@@ -119,6 +140,37 @@ All parameters except the last are positional — use fewer for lower dimensions
 - `arr[index]` — access element
 - `arr.length` — array length
 - Methods: `.forEach(fn)`, `.map(fn)`, `.reduce(fn, init)`, `.sort(fn)`, `.mutate(fn)`
+
+### Free-function array ops (alternative to methods)
+
+| Function | Description |
+|---|---|
+| `arrayMutate(arr, (v, i, a) => newV)` | In-place map; same as `arr.mutate(fn)` |
+| `arrayMapTo(src, dst, (v, i, a) => newV)` | Map `src` into pre-allocated `dst` |
+| `arraySortBy(arr, indexArr)` | Sort `indexArr` so `arr[indexArr[k]]` is ascending (arr is unchanged) |
+
+## 2D/3D Transforms (V3)
+
+Applied before the next `render*` call. `resetTransform` reverts to identity. Transforms are cumulative within a frame — typically call `resetTransform()` in `beforeRender` before re-applying.
+
+| Function | Description |
+|---|---|
+| `resetTransform()` | Clear to identity |
+| `translate(dx, dy)` / `translate3D(dx, dy, dz)` | Shift origin |
+| `scale(sx, sy)` | Uniform or per-axis scale |
+| `rotate(theta)` / `rotate2D(theta)` | 2D rotation (radians) |
+| `rotateX(theta)` / `rotateY(theta)` / `rotateZ(theta)` | 3D rotations around each axis |
+
+## Clock / Sync
+
+| Function | Description |
+|---|---|
+| `clockHour()` | Current hour (0–23) from the PB clock |
+| `clockMinute()` | Current minute (0–59) |
+| `clockSecond()` | Current second (0–59) |
+| `requestSync()` | Request clock sync with server/master |
+| `syncTime(ms)` | Manually set the clock |
+| `resetTime()` | Reset the internal millisecond counter |
 
 Memory limits:
 - V2+: 64 arrays, 2,048 total elements

@@ -160,20 +160,6 @@ function paint2(v, rgbArray, pal) {
   }
 }
 
-// utility function:
-// interpolate colors within and between two palettes
-// and set the LEDs directly with the result.  To be
-// used in render() functions
-function paletteMix(pal1, pal2, colorPct,palettePct) {
-  paint2(colorPct,pixel1,pal1);
-  paint2(colorPct,pixel2,pal2);
-
-  rgb(mix(pixel1[0],pixel2[0],palettePct),
-      mix(pixel1[1],pixel2[1],palettePct),
-      mix(pixel1[2],pixel2[2],palettePct)
-   )
-}
-
 // construct a new palette in the currentPalette array by blending
 // between pal1 and pal2 in proportion specified by blend
 function buildBlendedPalette(pal1, pal2, blend) {
