@@ -1,0 +1,20 @@
+/*
+  cpt-city: nd/atmospheric/Sunset_Real (ggr)
+
+  Extra gradients for the GIMP by Nevit Dilmen
+
+  author: Nevit Dilmen
+  copyright: GPL
+  year: 2007
+  url: https://phillips.shef.ac.uk/pub/cpt-city/nd/atmospheric
+*/
+linear-gradient(
+  0deg,
+  rgb(191,   0,   0)   0.000%,
+  rgb(223,  85,   0)   8.848%,
+  rgb(255, 170,   0)  20.367%,
+  rgb(217,  85,  89)  33.389%,
+  rgb(178,   0, 178)  53.255%,
+  rgb( 89,   0, 195)  77.769%,
+  rgb(  0,   0, 212) 100.000%
+);
