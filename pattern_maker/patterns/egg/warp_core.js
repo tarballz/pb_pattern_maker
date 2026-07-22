@@ -13,6 +13,14 @@
   auto-rotates with crossfades — dark-base, high-saturation, limited-hue
   acid palettes (no full rainbows, no whites, no pastels).
 
+  2D strategy: RE-PARAMETERIZE (2d-parity.md strategy c). The old render2D
+  sliced at z=0.5 borrowing the 3D tumble axis for depth — but whenever that
+  axis pointed near ±z (ax,ay → 0) the depth term went near-constant and the
+  rings flattened across the whole panel. render2D now derives depth from a
+  2D-native rotating direction with its own time tap, so the tunnel always
+  keeps ring structure; the ring/twist/tunnel math is otherwise identical.
+  1D render() walks the long (y) axis through the center.
+
   Sliders:
     Speed        — overall warp rate
     RingDensity  — main ring frequency 3..12
@@ -196,8 +204,14 @@ export function sliderBrightness(v) {
 var dsqCache = array(pixelCount)
 var angleCache = array(pixelCount)
 
+// Per-LED caches for the 2D-native renderer (same lazy-cache trick as the
+// 3D arrays above; kept separate so toggling 2D/3D never mixes stale values).
+var dsq2dCache = array(pixelCount)
+var angle2dCache = array(pixelCount)
+
 // Per-frame state
 var ax = 0, ay = 1, az = 0   // current unit axis direction ("forward")
+var c2d = 1, s2d = 0         // 2D-native tunnel direction (always unit-length)
 var warpPhase = 0            // 0..1 sawtooth driving ring scroll
 var hueDrift = 0             // 0..1 sawtooth driving overall palette cycle
 
@@ -218,6 +232,13 @@ export function beforeRender(delta) {
 
   warpPhase = time(0.04 / speed)   // ring-scroll period
   hueDrift  = time(0.7  / speed)   // overall palette cycle
+
+  // 2D-native tunnel direction for render2D (audit fix: re-parameterize —
+  // strategy c). Its own independent tap, paced like the axis tumble, and
+  // always unit-length in the panel plane so the rings never flatten.
+  var t2d = time(0.5 / tumbleScale) * PI2
+  c2d = cos(t2d)
+  s2d = sin(t2d)
 }
 
 export function render3D(index, x, y, z) {
@@ -283,6 +304,46 @@ export function render3D(index, x, y, z) {
   paint(pos, v)
 }
 
+// 2D strategy: re-parameterize (2d-parity.md strategy c). The old
+// render3D(index, x, y, 0.5) slice borrowed the 3D tumble axis for depth,
+// which went near-constant (rings flattened panel-wide) whenever the axis
+// pointed near ±z. Depth now comes from a 2D-native rotating direction
+// (c2d, s2d) with its own time tap; ring/twist/tunnel math matches render3D.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0.5)
+  // Cached per-LED geometry, mirroring render3D's lazy-cache pattern.
+  var dsq = dsq2dCache[index]
+  var spiralAngle
+  if (!dsq) {
+    var dxi = x - 0.5, dyi = y - 0.5
+    dsq = dxi * dxi + dyi * dyi + 0.0001
+    spiralAngle = atan2(dyi, dxi)
+    dsq2dCache[index] = dsq
+    angle2dCache[index] = spiralAngle
+  } else {
+    spiralAngle = angle2dCache[index]
+  }
+
+  // Signed depth along the rotating 2D tunnel direction, and squared
+  // perpendicular distance from that line — same roles as in render3D.
+  var depth = (x - 0.5) * c2d + (y - 0.5) * s2d
+  var rperpSq = dsq - depth * depth
+  if (rperpSq < 0) rperpSq = 0
+
+  var ring1 = wave(depth * ringDensity - warpPhase * ringDensity + spiralAngle * twist)
+  var ring2 = wave(depth * ringDensity * 3 - warpPhase * ringDensity * 2.5)
+  var tunnelMask = 1 - smoothstep(0.01, tunnelWidth, rperpSq)
+  var v = (ring1 * 0.7 + ring2 * 0.3) * (0.25 + 0.75 * tunnelMask)
+
+  var pos = depth * 1.2 + hueDrift + hueOffset
+  pos = pos - floor(pos)
+
+  v = v * v * brightness
+  if (v < 0.04) v = 0
+
+  paint(pos, v)
+}
+
+// 1D fallback: walk the strip along the long (y) axis through the center.
+export function render(index) {
+  render3D(index, 0.5, index / pixelCount, 0.5)
 }

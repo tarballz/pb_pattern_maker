@@ -41,6 +41,14 @@
   - Each source has its own slowly-drifting hue; whichever source
     contributes more brightness to an LED wins its hue. Additive total
     brightness, cubic gamma via `paint`.
+  - The black between and beyond the shells is intentional empty space —
+    no ambient floor. The void is what reads as two bodies moving through
+    a dark volume rather than a texture painted on a surface.
+
+  2D strategy: slice K=0.5 (2d-parity.md decision-tree Q2 — spherical level
+  sets, slice where the action is). Orbit centers are clamped to [0.2, 0.8]
+  per axis, so the mid-plane passes through live source volume; a z=0 slice
+  never comes within 0.2 of either source (failure class 2).
 
   Palette crossfade is the same manager as hc_pat.js / gyroid.js.
 
@@ -235,8 +243,12 @@ export function beforeRender(delta) {
   shellPhase = time(0.012 / speed)
 
   // Per-source hue offsets — opposite sides of the palette, slowly drifting.
+  // h2 is re-wrapped into [0,1) before it reaches paint() (house convention;
+  // audit: unwrapped palette position stalled at the final stop for half the
+  // cycle).
   h1 = time(0.9 / speed)
   h2 = h1 + 0.5
+  h2 = h2 - floor(h2)
 }
 
 export function render3D(index, x, y, z) {
@@ -266,9 +278,12 @@ export function render3D(index, x, y, z) {
   paint(h, v * brightness)
 }
 
-// 2D fallback: slice at z == 0.
+// 2D strategy: slice K=0.5 — orbit centers are clamped to [0.2, 0.8] per
+// axis, so the mid-plane crosses live source volume; the old z=0 slice never
+// intersected a source (2d-parity.md Q2 / failure class 2): cores capped at
+// half brightness and shells only arrived as stale off-center arcs.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0)
+  render3D(index, x, y, 0.5)
 }
 
 // 1D fallback: walk the pattern along x so the strip preview stays alive.

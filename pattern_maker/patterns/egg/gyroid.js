@@ -40,6 +40,21 @@
   - Hue travels through the field position plus time, so bands flow through
     the palette while the palette itself crossfades (see palette manager
     below, ported from patterns/egg/hc_pat.js).
+  - The dark gaps between labyrinth walls are intentional negative space
+    (fire-style void) — the black background is a design choice, not a
+    missing ambient floor.
+
+  2D strategy
+  -----------
+  PROJECT — curved-cut/dome (2d-parity.md strategy e, decision-tree Q4:
+  volume-only structure). A flat z-slice of the gyroid is just parallel
+  wiggly stripes (2d-parity.md failure class 3 — this file is its cited
+  example); the labyrinth read only exists because the egg's shell curves
+  *through* the volume. render2D borrows that trick by projecting through a
+  virtual dome so the cut crosses cells at varying depth. This exact dome
+  shape is the 2d-parity.md prescription and is still an UNTESTED
+  HYPOTHESIS — it needs an emulator pass; the dome tuning constants above
+  render2D are adjustable if it reads poorly.
 
   Sliders
   -------
@@ -268,10 +283,19 @@ export function render3D(index, x, y, z) {
   paint(h, v * brightness)
 }
 
-// 2D fallback: slice at z == 0. Visibly less interesting than the 3D view —
-// which is intentional, it's the contrast that sells the 3D map.
+// 2D strategy: project — curved-cut/dome (2d-parity.md strategy e). A flat
+// z-slice is just wiggly stripes; cutting through a virtual dome crosses
+// gyroid cells at varying depth, like the egg's curved shell does. Untested
+// hypothesis per 2d-parity.md — tune these constants after an emulator pass.
+var domeCapSq = 0.09   // squared height where the dome flattens (0.3^2)
+var domeRadSq = 0.25   // squared dome radius — spans the panel (0.5^2)
+var domeBase  = 0.2    // vertical offset of the cut (z at the panel edge is
+                       // domeBase + sqrt(domeCapSq) = 0.5; center is 0.7)
+
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0)
+  var rr = (x - .5) * (x - .5) + (y - .5) * (y - .5)
+  var zDome = domeBase + sqrt(max(domeCapSq, domeRadSq - rr))
+  render3D(index, x, y, zDome)
 }
 
 // 1D fallback: walk a line through the gyroid so strip previews stay alive.

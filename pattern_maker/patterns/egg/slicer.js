@@ -41,7 +41,18 @@
     the ring.
   - Hue: positive side of the plane uses h1, negative side uses h2
     (opposite palette positions), plus a small drift with |d| for a
-    gradient into the shell colors.
+    gradient into the shell colors. Palette positions are wrapped into
+    [0,1) before paint() (house convention).
+  - Between the ring and the wake crests the egg goes dark on purpose —
+    the black gap is intentional negative space that keeps the ring and
+    ripples readable, not a missing ambient floor.
+
+  2D strategy: RE-PARAMETERIZE (2d-parity.md strategy c). render2D drives
+  the same ring + wake math with a signed distance from a 2D-native
+  rotating line in the panel's own plane. The old z=0 slice reused the 3D
+  normal, which went degenerate whenever the tumble pointed near ±z
+  (nx,ny → 0 made d near-constant, flattening the whole panel); the 2D
+  direction (n2x, n2y) is always unit-length, so the line never collapses.
 
   Palette crossfade is the same manager as hc_pat.js / gyroid.js.
 
@@ -215,6 +226,7 @@ export function sliderRippleFreq(v)     { rippleFreq = 3 + v * 15 }        // 3 
 
 // Per-frame state
 var nx, ny, nz          // plane normal
+var n2x, n2y            // 2D-native line direction for render2D (always unit)
 var ripplePhase         // expanding-shell phase
 var h1, h2              // hue offsets for each side of the plane
 var invRingThickness    // cached 1/ringThickness for render
@@ -232,6 +244,13 @@ export function beforeRender(delta) {
   ny = sa * sb
   nz = ca
 
+  // Re-parameterized 2D line direction (audit: intermittent depth collapse).
+  // Reuses the slow `a` rotation but stays in the panel plane, so unlike
+  // (nx, ny) — which shrink toward zero when the 3D normal tumbles near ±z —
+  // this vector is always unit-length and the 2D line never degenerates.
+  n2x = ca
+  n2y = sa
+
   // Wake ripples propagating outward from the plane. wave() wraps naturally,
   // so the sawtooth phase has no visible reset.
   ripplePhase = time(0.04 / speed) // ~2.6s period at speed=1
@@ -243,10 +262,10 @@ export function beforeRender(delta) {
   invRingThickness = 1 / ringThickness
 }
 
-export function render3D(index, x, y, z) {
-  // Signed distance from the tumbling plane through the egg's center.
-  var cx = x - 0.5, cy = y - 0.5, cz = z - 0.5
-  var d = cx * nx + cy * ny + cz * nz
+// Shared per-pixel body for render3D/render2D (audit fix: refactored out of
+// render3D unchanged). d is the signed distance from the tumbling plane (3D)
+// or the rotating line (2D) through the center.
+function renderSlice(d) {
   var ad = abs(d)
 
   // Bright ring where the plane meets the surface. Linear falloff within
@@ -261,17 +280,27 @@ export function render3D(index, x, y, z) {
 
   // Sharp color split across the plane, with a subtle hue drift outward so
   // each half has a gradient from the ring into the wake ripples.
+  // Wrapped into [0,1) before paint() (audit: unwrapped palette position).
   var h = (d > 0 ? h1 : h2) + ad * 0.2
+  h = h - floor(h)
 
   var v = min(ring + ripple * 0.6, 1)
 
   paint(h, v * brightness)
 }
 
-// 2D fallback: slice at z == 0. Tumbling reduces to spinning lines in 2D —
-// still pretty but visibly less interesting than the full 3D view.
+export function render3D(index, x, y, z) {
+  // Signed distance from the tumbling plane through the egg's center.
+  renderSlice((x - 0.5) * nx + (y - 0.5) * ny + (z - 0.5) * nz)
+}
+
+// 2D strategy: re-parameterize (2d-parity.md strategy c) — the same ring +
+// wake math driven by a 2D-native rotating line. The old z=0 slice went flat
+// whenever the tumbling 3D normal pointed near ±z (nx,ny → 0 made d
+// near-constant across the panel); (n2x, n2y) is always unit-length, so the
+// line always has structure.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0)
+  renderSlice((x - 0.5) * n2x + (y - 0.5) * n2y)
 }
 
 // 1D fallback: project the strip across the x axis through the egg's midline.

@@ -4,6 +4,16 @@
 // Rainbow Smoke (rainbowsmoke.hu/home) for Pixelblaze
 // 2024 - ZRanger1
 // and borrowing palettes from the Lux Lavalier
+//
+// 2D strategy: slice (any K) — the drawing phase is purely index-based and
+// ignores z entirely, so 2D parity is free (2d-parity.md Q1/Q2 trivially
+// met). During the one-time mapping phase the neighbor graph is simply built
+// from 2D distances instead. A 1D render() walks the same index-driven sim.
+//
+// Sliders: Speed scales pixels committed per frame during the growth phase;
+// Brightness scales the output (with gamma, Rule 6). The steady-state paint
+// level is capped at 0.6 so the finished organism doesn't sit at full
+// brightness indefinitely between redraws.
 
 var numNeighbors = 8 //this is a key setting, smaller values create tighter patterns
 var initialSeeds = 1
@@ -14,6 +24,21 @@ var neighborhoodRadius = 0.2; //big enough for an 8x8 grid to find adjacent pixe
 // frame for ~1400 LEDs, which keeps the drawing cadence smooth.
 var opsPerCycle = 4096;
 var drawsPerFrame = 4 // pixels committed per frame during the drawing phase
+
+// Mandatory controls (Rule 5). Speed scales the growth rate; Brightness
+// scales the gamma'd output (Rule 6). drawV is the cached paint() value:
+// (0.6 * brightness)^2 — capped at 0.6 pre-gamma so the finished organism
+// doesn't sit at full brightness between redraws (composition restraint).
+var brightness = 1
+var drawV = 0.36
+export function sliderSpeed(v) {
+  drawsPerFrame = 1 + floor(v * 7 + 0.0001) // 1..8 px/frame; mid-slider = 4
+}
+export function sliderBrightness(v) {
+  brightness = v
+  drawV = 0.6 * brightness
+  drawV = drawV * drawV
+}
 var matches = array(8) //consider at most this many neighborhoods while drawing
 
 //store 2 indexes per element to save space
@@ -253,6 +278,19 @@ export function render3D(index, x, y, z) {
   else renderDrawColors(index, x, y, z)
 }
 
+// 2D strategy: slice (any K) — renderDrawColors is purely index-based and
+// never reads z, so a flat slice loses nothing; during the mapping phase the
+// neighbor graph is just built from 2D distances instead (2d-parity.md).
+export function render2D(index, x, y) {
+  render3D(index, x, y, 0.5)
+}
+
+// 1D fallback: same reasoning — the sim is index-driven; coordinates only
+// matter for the one-time neighbor mapping, which degrades to strip distance.
+export function render(index) {
+  render3D(index, 0.5, index / pixelCount, 0.5)
+}
+
 export function beforeRender(deltaMs) {
   var k
   if (needsMapping) {
@@ -325,7 +363,9 @@ export function beforeRender(deltaMs) {
 function renderDrawColors(index, x, y, z) {
   var color = pixels[index]
   if (color > 0) {
-    paint(color)
+    // drawV = (0.6 * brightness)^2 — gamma'd, user-scalable, capped below
+    // full so the completed drawing keeps highlight headroom (Rules 5/6).
+    paint(color, drawV)
   }
 }
 
