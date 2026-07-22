@@ -11,7 +11,10 @@ discovery, in that order.
 """
 
 import argparse
+import json
 import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -120,6 +123,48 @@ def cmd_frame(args):
     print(f"{pixels}-pixel frame written to {out} ({pixels}x{args.height} PPM)")
 
 
+HARNESS = Path(__file__).parent / "tools" / "perf_estimate.mjs"
+
+
+def run_perf_estimate(pattern: str, map_path: str | None = None,
+                      pixel_count: int | None = None,
+                      output_method: str = "ws2812") -> dict:
+    """Estimate hardware FPS by shelling to the node harness. Exits with a
+    named message rather than a traceback on any failure."""
+    if not map_path and not pixel_count:
+        sys.exit("Need --map or --pixel-count to know how many LEDs to model.")
+    if shutil.which("node") is None:
+        sys.exit("node not found on PATH — required for the perf estimate.")
+
+    cmd = ["node", str(HARNESS), "--pattern", pattern, "--output-method", output_method]
+    if map_path:
+        cmd += ["--map", map_path]
+    if pixel_count:
+        cmd += ["--pixel-count", str(pixel_count)]
+
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        sys.exit(proc.stderr.strip() or f"perf estimate failed (exit {proc.returncode})")
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        sys.exit(f"perf estimate returned unreadable output: {proc.stdout[:200]}")
+
+
+def cmd_perf(args):
+    result = run_perf_estimate(args.file, args.map, args.pixel_count, args.output_method)
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        fps = result["estFps"]
+        print(f"{args.file}")
+        print(f"  {result['pixelCount']} pixels ({result['dim']}D map) -> {result['renderPicked']}")
+        print(f"  {result['expensiveOpCount']} expensive op(s) in the rendered function")
+        print(f"  est. {fps:.1f} FPS on V3 / {result['outputMethod']} ({result['bound']}-bound)")
+    if args.min_fps and result["estFps"] < args.min_fps:
+        sys.exit(f"FAIL: {result['estFps']:.1f} FPS is below --min-fps {args.min_fps}")
+
+
 def main():
     parser = argparse.ArgumentParser(prog="pb", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -151,6 +196,15 @@ def main():
     p.add_argument("-o", "--output", default="frame.ppm")
     p.add_argument("--height", type=int, default=16, help="image height in repeated rows (default 16)")
     p.set_defaults(fn=cmd_frame)
+
+    p = sub.add_parser("perf", help="estimate hardware FPS for a pattern (no device needed)")
+    p.add_argument("file")
+    p.add_argument("--map", help="map CSV/JSON to take the pixel count and dimensionality from")
+    p.add_argument("--pixel-count", type=int, help="model this many pixels instead of reading a map")
+    p.add_argument("--output-method", default="ws2812", choices=["ws2812", "expander", "apa102"])
+    p.add_argument("--min-fps", type=float, help="exit non-zero if the estimate falls below this")
+    p.add_argument("--json", action="store_true", help="print the raw JSON result")
+    p.set_defaults(fn=cmd_perf)
 
     args = parser.parse_args()
     args.fn(args)
