@@ -297,9 +297,19 @@ Expected: one JSON line with `pixelCount` ≈ 1449, `renderPicked` `"render3D"`,
 - [ ] **Step 3: Confirm the heavy-vs-light contrast**
 
 ```bash
+node tools/perf_estimate.mjs --pattern patterns/egg/cosmic_bloom.js --map maps/egg_mapping/led_map_3d.csv
 node tools/perf_estimate.mjs --pattern examples/utility/solid_color.js --map maps/egg_mapping/led_map_3d.csv
 ```
-Expected: `expensiveOpCount` 0 (or near it) and a materially **higher** `estFps` than `fibonacci_dream.js`. If it isn't higher, stop — the model is being fed wrong and the plan needs revisiting.
+Expected: `cosmic_bloom` reports ~5 expensive ops, `bound: "compute"`, and ~18.9 FPS; `solid_color` reports 0 ops, `bound: "output"`, and ~22.6 FPS — a materially higher estimate. If the light pattern is not strictly higher, stop — the model is being fed wrong.
+
+**Why this specific pair** (do not substitute a lower-op "heavy" pattern): at
+1449 pixels on WS2812 the output path costs 44.2 ms/frame, so the rig is
+output-bound — and therefore pinned at 22.62 FPS — for any pattern with 0–3
+expensive ops. Only at 4+ ops does compute overtake output and the estimate
+start moving. A contrast test needs one pattern on each side of that
+crossover. (`fibonacci_dream` looks heavy but counts only 1 op: its hot loop
+is `wave()`/`mod()`, which are cheap LUT operations and correctly excluded
+from `EXPENSIVE_OPS`.)
 
 - [ ] **Step 4: Check the missing-emulator error path**
 
@@ -385,14 +395,20 @@ def test_real_estimate_against_egg_map():
 
 @integration
 def test_expensive_pattern_estimates_slower_than_cheap_one():
+    # cosmic_bloom (~5 expensive ops) is compute-bound at 1449px; solid_color
+    # (0 ops) is output-bound. The pair must straddle that crossover — below
+    # 4 ops the egg is pinned at its 22.62 FPS output ceiling and every
+    # pattern estimates identically, so a same-side pair proves nothing.
     heavy = pb.run_perf_estimate(
-        "patterns/egg/fibonacci_dream.js", map_path="maps/egg_mapping/led_map_3d.csv"
+        "patterns/egg/cosmic_bloom.js", map_path="maps/egg_mapping/led_map_3d.csv"
     )
     light = pb.run_perf_estimate(
         "examples/utility/solid_color.js", map_path="maps/egg_mapping/led_map_3d.csv"
     )
-    assert light["estFps"] >= heavy["estFps"]
-    assert light["expensiveOpCount"] <= heavy["expensiveOpCount"]
+    assert heavy["expensiveOpCount"] > light["expensiveOpCount"]
+    assert light["estFps"] > heavy["estFps"]
+    assert heavy["bound"] == "compute"
+    assert light["bound"] == "output"
 ```
 
 - [ ] **Step 2: Run to verify failure**
