@@ -24,10 +24,19 @@
 
 // START PALETTE STUFF
 
+// Palette dark ends are anchored on a dim TINT of their own hue family
+// (~0.02-0.06/channel) rather than literal (0,0,0). paint(h, v) indexes
+// these arrays by hue position, and a v-floor alone can't rescue a
+// position-0 stop that's pure black: 0 * anything is still 0. Pure-black
+// pixels on the physical sculpture read as dead LEDs, not dark ones — see
+// "Background is a color decision" in references/color-craft.md. Only the
+// stops that were at or near (0,0,0) were lifted; hue progressions and all
+// other stops are untouched.
+
 //http://soliton.vm.bytemark.co.uk/pub/cpt-city/nd/basic/tn/BlacK_Blue_Magenta_White.png.index.html
 //black-blue-purple-pink-white
 var black_Blue_Magenta_White_gp = [
-    0,   0,  0,  0,
+    0,   5,  0, 13,
    42,   0,  0, 45,
    84,   0,  0,255,
   127,  42,  0,255,
@@ -40,12 +49,12 @@ arrayMutate(black_Blue_Magenta_White_gp,(v, i ,a) => v / 255);
 //http://soliton.vm.bytemark.co.uk/pub/cpt-city/es/landscape/tn/es_landscape_33.png.index.html
 //brown-yellow-forest-green
 var es_landscape_33_gp = [
-    0,   1,  5,  0,
+    0,   8, 10,  5,
    19,  32, 23,  1,
    38, 161, 55,  1,
    63, 229,144,  1,
    66,  39,142, 74,
-  255,   1,  4,  1]
+  255,   6, 14,  5]
 
 arrayMutate(es_landscape_33_gp,(v, i ,a) => v / 255);
 
