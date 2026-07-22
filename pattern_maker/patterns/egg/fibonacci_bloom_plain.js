@@ -179,7 +179,12 @@ var INV_PHI = 0.6180339887
 var seedDensity = 28
 
 // Always-on palette glow so every pixel reads its palette color even
-// between ridges — prevents the egg from looking dark and empty.
+// between ridges — prevents the egg from looking dark and empty. Unlike
+// the sibling variants' arm formulas, ridgeA/ridgeB here aren't folded
+// into a bounded sector, so they (and their product) can sit arbitrarily
+// close to 0 across most of the surface — baseGlow alone sets the true
+// floor for a large fraction of pixels. See the render3D/render2D tail for
+// why that floor needs re-clamping after the brightness multiply too.
 var baseGlow = 0.22
 
 // Sliders.
@@ -301,12 +306,19 @@ export function render3D(index, x, y, z) {
   var pos = seedStatic * INV_PHI + theta * 0.1592 * INV_PHI + tDrift
   pos = pos - floor(pos)
 
-  // Gamma + brightness.
+  // Gamma, then brightness. baseGlow's pre-gamma floor (0.22) alone isn't
+  // enough: at the emulator's default Brightness=0.65 slider probe,
+  // baseGlow^2 * 0.65 ≈ 0.031 sits below the 0.04 dithering deadband, so
+  // the plain "hard-snap below threshold" form (still used by the sibling
+  // fibonacci_bloom*.js files, safe there because their sector-folded arm
+  // formulas rarely reach baseGlow's floor) was zeroing most inter-ridge
+  // pixels here — dead LEDs on the sculpture, not "dark valleys"
+  // (color-craft.md, "Background is a color decision"). Re-clamp after the
+  // brightness multiply instead, so the ambient floor survives any
+  // Brightness > 0 — same fix shape as axial_flow.js. Brightness == 0
+  // still means fully off.
   v = v * v * brightness
-
-  // Dithering deadband — hard snap below the PWM threshold to
-  // prevent per-pixel flicker on dark troughs.
-  if (v < 0.04) v = 0
+  if (brightness > 0) v = max(v, 0.045)
 
   paint(pos, v)
 }
@@ -361,8 +373,9 @@ export function render2D(index, x, y) {
   var pos = seedStatic * INV_PHI + theta * 0.1592 * INV_PHI + tDrift
   pos = pos - floor(pos)
 
+  // See render3D for why the floor is re-clamped after the multiply.
   v = v * v * brightness
-  if (v < 0.04) v = 0
+  if (brightness > 0) v = max(v, 0.045)
 
   paint(pos, v)
 }

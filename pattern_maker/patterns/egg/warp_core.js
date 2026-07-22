@@ -1,6 +1,12 @@
 /*
   Warp Core — tumbling wormhole for the egg
 
+  Render-audit note: true-black pixels (~39% 3D / 31% 2D on the real egg
+  map) are the dark space between rings, not a missing ambient floor —
+  reviewed against color-craft.md's "Background is a color decision" rule
+  and kept as the documented, intentional exception it allows (Rule 7).
+  No behavior changed.
+
   A tunnel of concentric rings rushing past a moving axis direction. The
   axis itself tumbles slowly through 3D, so "forward" drifts — you dive
   toward the top pole for a while, then pivot to a side, then to the

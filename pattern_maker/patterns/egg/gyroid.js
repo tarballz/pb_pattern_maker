@@ -40,9 +40,12 @@
   - Hue travels through the field position plus time, so bands flow through
     the palette while the palette itself crossfades (see palette manager
     below, ported from patterns/egg/hc_pat.js).
-  - The dark gaps between labyrinth walls are intentional negative space
-    (fire-style void) — the black background is a design choice, not a
-    missing ambient floor.
+  - Most of the labyrinth interior sits far from the g==0 surface, where
+    `band` (and so `v`) clips to literal 0 — on the physical egg that reads
+    as dead LEDs, not "dark interior" (color-craft.md, "Background is a
+    color decision"). render3D floors v so unlit regions still emit a dim
+    tint of whichever palette is currently active, rather than true black;
+    the surface structure, thresholding, and dome projection are untouched.
 
   2D strategy
   -----------
@@ -116,8 +119,13 @@ var Analogous_1_gp = [
 arrayMutate(Analogous_1_gp,(v, i ,a) => v / 255);
 
 //black-blue-magenta-white
+// Position-0 stop lifted from literal (0,0,0) to a dim tint of its own
+// blue family (~0.02/channel) — paint(h, v) indexes this array by hue
+// position, so a v-floor alone can't rescue a literal-black stop (0 * v
+// is still 0). Matches the perlin_kal.js fix (commit 37a4476) for the
+// identical palette array.
 var black_Blue_Magenta_White_gp = [
-    0,   0,  0,  0,
+    0,   5,  0, 13,
    42,   0,  0, 45,
    84,   0,  0,255,
   127,  42,  0,255,
@@ -231,6 +239,13 @@ var brightness = 1
 var densityBase = 2.5   // base number of gyroid cells across the egg
 var thickness = 0.3     // band width around the zero surface
 
+// Dim ambient floor so the labyrinth interior (band == 0 almost
+// everywhere off the g==0 surface) reads as "dark egg" instead of "off
+// egg" — color-craft.md's background-floor rule. Lands ~0.02-0.06/channel
+// once multiplied by a typical palette color, above the 0.04 dithering
+// deadband, without swamping the surface glow (v reaches 1 there).
+var AMBIENT_FLOOR = 0.06
+
 export function sliderSpeed(v)      { speed = 0.1 + v * 1.9 }        // 0.1 .. 2.0
 export function sliderBrightness(v) { brightness = v }
 export function sliderDensity(v)    { densityBase = 1.5 + v * 3 }    // 1.5 .. 4.5 cells
@@ -276,6 +291,7 @@ export function render3D(index, x, y, z) {
   // Glow band around g == 0, with cubic gamma for perceptual punch.
   var band = 1 - min(abs(g) * invThickness, 1)
   var v = band * band * band
+  v = max(v, AMBIENT_FLOOR)
 
   // Hue: travels along the diagonal of the gyroid field plus a slow global drift.
   var h = (px + py + pz) * 0.05 + t4

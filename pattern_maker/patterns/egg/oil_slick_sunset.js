@@ -1,6 +1,12 @@
 /*
   Oil Slick Sunset — flowing iridescent thin-film, sunset palette set
 
+  Render-audit note: true-black pixels (~39% 3D / 42% 2D on the real egg
+  map) are the dark water between iridescent films, not a missing ambient
+  floor — reviewed against color-craft.md's "Background is a color
+  decision" rule and kept as the documented, intentional exception it
+  allows (Rule 7), same engine/verdict as oil_slick.js. No behavior changed.
+
   Same engine as oil_slick.js (low-freq warp drives both a domain-warp
   on a high-freq thickness field AND a bright/dark substrate mask;
   thickness gets multi-cycle palette mapped → tight interference fringes).

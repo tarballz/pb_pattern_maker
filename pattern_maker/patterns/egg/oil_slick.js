@@ -1,6 +1,12 @@
 /*
   Oil Slick — flowing iridescent thin-film
 
+  Render-audit note: true-black pixels (~39% 3D / 42% 2D on the real egg
+  map) are the dark water between iridescent films, not a missing ambient
+  floor — reviewed against color-craft.md's "Background is a color
+  decision" rule and kept as the documented, intentional exception it
+  allows (Rule 7). No behavior changed.
+
   A slow, marbled liquid surface. Two perlin noise fields per pixel:
 
     qx  — a low-frequency "flow" field that warps the lookup coords
