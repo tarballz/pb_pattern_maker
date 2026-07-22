@@ -1,129 +1,90 @@
 /*
-  Fibonacci Bloom — a Fibonacci-spiral sunflower on the egg
+  Orbital Cloud — quantum spherical-harmonic morph
 
-  Every structural AND temporal constant in this pattern derives from
-  the golden angle, the Fibonacci sequence, or φ. Nothing is tuned by
-  taste — the visual is what the math produces.
+  Treats the egg surface as a sphere and renders the squared modulus of a
+  real-spherical-harmonic field
 
-  ── Geometry (forced by GA = π(3−√5) = 137.507°) ──
+      Ψ(θ, φ) = Σᵢ cᵢ · Y_lᵢ^mᵢ(θ, φ)
 
-    8-family  (F₆): 8 clockwise spirals. Slope +1.225 rad/depth, swept
-                    ~70° pole-to-pole. SLOPE8 = (8·GA mod 2π) / (8/28).
+  The coefficient vector c slowly crossfades between hand-tuned "orbital
+  recipes" — s, p_z, p_x, d_z², d_{x²-y²}, f_z³, and hybrids — so the LEDs
+  trace lobes that morph between recognizable atomic-orbital shapes via
+  unfamiliar in-between superpositions. The whole field also slowly
+  precesses around the vertical axis (φ rotation), and a separate Fibonacci
+  period drives the trippy 4-palette rotation. Nothing re-syncs.
 
-    13-family (F₇): 13 counter-clockwise spirals. Slope −0.466 rad/depth,
-                    ~27° sweep. SLOPE13 = (13·GA mod 2π shortest) / (13/28).
-
-    The arm counts 8 and 13 aren't chosen — they're the Fibonacci pair
-    that falls out of phyllotaxis at this density. The slopes aren't
-    tunable — they're the angular step of those Fibonacci seed-neighbors
-    divided by their depth step. Both families are painted as colored
-    ridges directly, so you see the Fibonacci spirals, not just hint
-    at them through dots.
-
-  ── Timing (Fibonacci seconds in φ ratio) ──
-
-    rot8     21s  = F₈     (clockwise rotation)
-    rot13    34s  = F₉     (counter-clockwise)          34/21 = 1.619 ≈ φ
-    amp8     55s  = F₁₀    (8-family amplitude breath)
-    amp13    89s  = F₁₁    (13-family, π-offset)        89/55 = 1.618 = φ
-    tDrift   34s  = F₉     (palette drift, decoupled phase)
-
-    Every ratio between time periods is φ. Since φ is irrational, no
-    two elements ever re-sync — the pattern never returns to a previous
-    state. This is why the visual evolves continuously without looping.
-
-  ── Color coupling ──
-
-    Each arm occupies 1/N of the palette ring (1/8 for 8-family, 1/13
-    for 13-family). Going once around the egg sweeps the full palette
-    once per family — so 8 and 13 distinct hues are simultaneously
-    visible.
-
-    The 13-family is offset by φ⁻¹ = 0.618 on the palette ring — the
-    most irrational offset possible, so its 13 hues never collide with
-    the 8-family's 8 hues as rotations advance.
-
-    Depth-to-hue stratification is φ⁻² = 0.382, slightly enriching the
-    pole-to-pole color gradient.
-
-  ── What you see ──
-
-    Counter-rotating Fibonacci spirals of two families bloom with up to
-    104 migrating intersection nodes (8 × 13 = 104 crossings per revo-
-    lution). Each family's visibility waxes and wanes slowly, trading
-    dominance over the course of a minute. All motion is continuous and
-    slow — no single LED changes brightness fast enough to flicker.
-
-  Palette cycles through 4 cosmic moods (emission nebula → galactic core
-  → deep-space → starlight) with 30s cross-fades per slot.
+  Brightness ∝ Ψ²  (quantum probability density — lobes glow, nodes go dark)
+  Hue        = sign(Ψ) split + slow drift  (positive vs negative lobes
+                                              get opposite halves of the palette,
+                                              so nodal surfaces read as color borders)
 
   Sliders:
-    Speed          — overall animation rate
-    Brightness     — global output scale
-    ArmSharpness   — line thickness (low = fat ribbons, high = crisp arms)
+    Speed       — overall animation rate
+    Brightness  — global output scale
+    MorphRate   — how fast modes crossfade (low = hold each orbital longer)
+    Precession  — how fast the lobes rotate around the vertical axis
 */
 
 // ============================================================
-// PALETTES — 4-slot cosmic progression, fetched via palette_maker
+// PALETTES — trippy cosmic set
 // ============================================================
 
-//https://phillips.shef.ac.uk/pub/cpt-city/bhw/bhw1/bhw1_oldladyinpurple
-//pink-purple-black (emission nebula)
-var bhw1_oldladyinpurple_gp = [
-    0, 212,130,230,
-    3, 212,130,230,
-   82, 128,  0,128,
-  158,  69, 24, 70,
+//https://phillips.shef.ac.uk/pub/cpt-city/pj/4/vibrant
+//white-teal-yellow-red-magenta-blue-black
+var vibrant_gp = [
+    0, 255,255,255,
+   31,   3,197,108,
+   71, 245,251, 77,
+  120, 255, 15, 66,
+  166, 225,  1,233,
+  214,  51, 94,253,
   255,   0,  0,  0]
-arrayMutate(bhw1_oldladyinpurple_gp,(v, i ,a) => v / 255);
+arrayMutate(vibrant_gp,(v, i ,a) => v / 255);
 
-//https://phillips.shef.ac.uk/pub/cpt-city/bhw/bhw2/bhw2_xc
-//navy-purple-brown-orange-yellow (galactic core)
-var bhw2_xc_gp = [
-    0,  56, 30, 68,
-    3,  56, 30, 68,
-   59,  89,  0,130,
-  122, 103,  0, 86,
-  158, 205, 57, 29,
-  184, 223,117, 35,
-  219, 241,177, 41,
-  255, 247,247, 35]
-arrayMutate(bhw2_xc_gp,(v, i ,a) => v / 255);
-
-//https://phillips.shef.ac.uk/pub/cpt-city/bhw/bhw1/bhw1_14
-//black-purple-navy-blue-navy-purple-black (deep space)
-var bhw1_14_gp = [
+//https://phillips.shef.ac.uk/pub/cpt-city/nd/basic/BlacK_Blue_Magenta_White
+//black-navy-blue-purple-magenta-pink-white
+var BlacK_Blue_Magenta_White_gp = [
     0,   0,  0,  0,
-   12,  35,  4, 48,
-   54,  70,  8, 96,
-   81,  56, 48,168,
-  120,  43, 89,239,
-  146,  64, 59,175,
-  186,  86, 30,110,
-  234,  43, 15, 55,
-  255,   0,  0,  0]
-arrayMutate(bhw1_14_gp,(v, i ,a) => v / 255);
-
-//https://phillips.shef.ac.uk/pub/cpt-city/neota/elem/crackly-ice
-//black-navy-teal-gray-white (starlight / ion trail)
-var crackly_ice_gp = [
-    0,   0,  0,  3,
-   38,  30, 32, 78,
-   76,  59, 64,153,
-  166, 157,160,204,
+   43,   0,  0,128,
+   85,   0,  0,255,
+  127, 128,  0,255,
+  170, 255,  0,255,
+  212, 255,128,255,
   255, 255,255,255]
-arrayMutate(crackly_ice_gp,(v, i ,a) => v / 255);
+arrayMutate(BlacK_Blue_Magenta_White_gp,(v, i ,a) => v / 255);
 
-var palettes = [bhw1_oldladyinpurple_gp, bhw2_xc_gp, bhw1_14_gp, crackly_ice_gp]
+//https://phillips.shef.ac.uk/pub/cpt-city/nd/terra/Tertiary_04a
+//lime-teal-navy-purple-red
+var Tertiary_04a_gp = [
+    0,  87,217,  0,
+   64,  43,115, 70,
+  127,   0, 14,140,
+  191, 108, 18, 91,
+  255, 217, 22, 43]
+arrayMutate(Tertiary_04a_gp,(v, i ,a) => v / 255);
+
+//https://phillips.shef.ac.uk/pub/cpt-city/jjg/misc/virus
+//black-navy-teal-green-brown-red-orange-yellow
+var virus_gp = [
+    0,   0,  0,  6,
+   32,   0, 13, 75,
+   64,   0,100,100,
+   96,   0,148, 42,
+  127, 112,103,  0,
+  159, 207, 35,  0,
+  191, 224,112,  0,
+  223, 239,179,  0,
+  255, 254,250,  0]
+arrayMutate(virus_gp,(v, i ,a) => v / 255);
+
+var palettes = [vibrant_gp, BlacK_Blue_Magenta_White_gp, Tertiary_04a_gp, virus_gp]
 
 // ============================================================
-// PALETTE MANAGER — verbatim from perlin_kal.js idiom
-// Holds on one palette for PALETTE_HOLD_TIME seconds, then
-// cross-fades to the next over PALETTE_TRANSITION_TIME seconds.
+// PALETTE MANAGER (shared with fibonacci_dream)
 // ============================================================
 
-var PALETTE_HOLD_TIME = 20         // seconds steady per slot
-var PALETTE_TRANSITION_TIME = 10   // seconds cross-fade between slots
+var PALETTE_HOLD_TIME = 20
+var PALETTE_TRANSITION_TIME = 10
 
 var currentIndex = 0
 var nextIndex = (currentIndex + 1) % palettes.length
@@ -140,7 +101,6 @@ var runTime = 0
 
 setPalette(currentPalette)
 
-// Sample a gradient palette into an rgbArray at position v.
 function paint2(v, rgbArray, pal) {
   var k, u, l
   var rows = pal.length / 4
@@ -164,7 +124,6 @@ function paint2(v, rgbArray, pal) {
   }
 }
 
-// Rebuild currentPalette as the blend of pal1 and pal2 at fraction `blend`.
 function buildBlendedPalette(pal1, pal2, blend) {
   var entry = 0
   for (var i = 0; i < PALETTE_SIZE; i++) {
@@ -200,114 +159,179 @@ function setupPalette(delta) {
 }
 
 // ============================================================
-// PATTERN
+// SLIDERS
 // ============================================================
-// See the top-of-file docstring for the full geometry / timing /
-// color derivation. This section is just the constants and code.
-
-// Golden angle + φ. Derivations rather than hardcoded numerics so it's
-// obvious these aren't free parameters.
-var GA = PI * (3 - sqrt(5))          // 2.39996 rad = 137.507°  (golden angle)
-var PHI = (1 + sqrt(5)) * 0.5        // 1.618034                (golden ratio)
-var INV_PHI = 2 / (1 + sqrt(5))      // 0.618034                (φ⁻¹)
-
-// Arm counts — consecutive Fibonacci (F₆, F₇). Slopes follow from GA:
-//   SLOPEk = (k·GA mod 2π, shortest arc) / (k/density)
-// so they're forced by GA at density 28, not free parameters.
-var ARMS8 = 8
-var ARMS13 = 13
-var SLOPE8 = 1.225       // F₆ arm tilt (rad per unit depth)
-var SLOPE13 = -0.466     // F₇ arm tilt, counter direction
-var SECT8 = PI2 / 8      // one 8-family sector width
-var SECT13 = PI2 / 13    // one 13-family sector width
-
-// Small baseline so the arm colors pop without being pitch-black between arms.
-var baseGlow = 0.05
 
 var speed = 1
 var brightness = 1
-var armSharpness = 45    // higher = crisp line arms, lower = fat ribbons
+var morphRate = 1
+var precessionRate = 1
 
-export function sliderSpeed(v) { speed = 0.3 + v * 2.4 }
-export function sliderBrightness(v) { brightness = 0.3 + v * 0.7 }
-export function sliderArmSharpness(v) { armSharpness = 15 + v * 120 }
+export function sliderSpeed(v)       { speed = 0.3 + v * 2.4 }
+export function sliderBrightness(v)  { brightness = 0.3 + v * 0.7 }
+export function sliderMorphRate(v)   { morphRate = 0.5 + v * 2.5 }
+export function sliderPrecession(v)  { precessionRate = v * 2 }
 
-// Per-LED azimuth cache. theta = atan2(z-0.5, x-0.5) is fixed per LED;
-// caching avoids ~1352 atan2 calls per frame. Sentinel -999 means
-// "not yet primed" (real thetas are in [-PI, PI]).
-var thetaCache = array(pixelCount)
-for (i = 0; i < pixelCount; i++) thetaCache[i] = -999
+// ============================================================
+// HARMONIC PRESETS
+//
+// Each preset is a 9-vector over the basis
+//   [Y00, Y10, Y11, Y1-1, Y20, Y22, Y2-2, Y30, Y32]
+// (i.e. s, p_z, p_x, p_y, d_z², d_{x²-y²}, d_xy, f_z³, f_xyz-ish)
+//
+// Stored flat as a 1D array of length NUM_PRESETS * NUM_HARMONICS
+// because PB's array() does not nest. Index as [preset*NH + harmonic].
+// ============================================================
 
-// Frame state (see docstring for full period table):
-//   rot8, rot13 — rotation phases: 21s CW (F₈), 34s CCW (F₉).
-//   amp8, amp13 — macro amplitude breath: 55s (F₁₀) and 89s (F₁₁), π-offset.
-//   tDrift      — palette drift, 34s (F₉).
-var rot8 = 0
-var rot13 = 0
-var amp8 = 1
-var amp13 = 1
-var tDrift = 0
+var NUM_HARMONICS = 9
+var NUM_PRESETS = 7
+var presets = array(NUM_PRESETS * NUM_HARMONICS)
+
+// Preset 0: pure s (uniform glow — a "breath" of light all over)
+presets[0*9 + 0] = 1.0
+// Preset 1: p_z (top + bottom lobes, equator nodal)
+presets[1*9 + 1] = 1.6
+// Preset 2: p_x (equator dipole)
+presets[2*9 + 2] = 1.6
+// Preset 3: d_z² (axial cigar + equatorial donut)
+presets[3*9 + 4] = 1.4
+// Preset 4: d_{x²-y²} (4-leaf clover at equator)
+presets[4*9 + 5] = 1.5
+// Preset 5: f_z³ (3-band axial stack)
+presets[5*9 + 7] = 1.6
+// Preset 6: hybrid (p_z + d_xy: tilted clover that drifts pole-to-pole)
+presets[6*9 + 1] = 0.9
+presets[6*9 + 6] = 1.2
+
+// Live coefficient vector (rebuilt every frame as a blend of two presets).
+var coeff = array(NUM_HARMONICS)
+var curIdx = 0
+var nextIdx = 1
+var lastMorphT = 0
+
+// ============================================================
+// PER-LED SPATIAL CACHE
+//
+// All purely geometric — atan2/sqrt/sin/cos paid once per LED on first
+// sight, never again. Sentinel: phiCache[i] = -999 means "not populated".
+// ============================================================
+
+var phiCache    = array(pixelCount)
+var cphiCache   = array(pixelCount)
+var sphiCache   = array(pixelCount)
+var muCache     = array(pixelCount)
+var sinThCache  = array(pixelCount)
+for (i = 0; i < pixelCount; i++) phiCache[i] = -999
+
+// ============================================================
+// FRAME STATE
+// ============================================================
+
+var precess = 0
+var cosPre = 1
+var sinPre = 0
+var huePhase = 0
+var breath = 1
 
 export function beforeRender(delta) {
   setupPalette(delta)
   var sp = speed
 
-  // All periods are Fibonacci seconds; every ratio is φ (so no two
-  // elements ever resynchronize). time() arg × 65.536 ≈ period in seconds.
-  rot8  =  time(0.3204 / sp) * PI2                       // 21s CW   (F₈)
-  rot13 = -time(0.5188 / sp) * PI2                       // 34s CCW  (F₉)
-  amp8  = 0.35 + 0.65 * wave(time(0.8393 / sp))          // 55s      (F₁₀)
-  amp13 = 0.35 + 0.65 * wave(time(1.3580 / sp) + 0.5)    // 89s      (F₁₁), π-offset
-  tDrift = time(0.5188 / sp)                             // 34s      (F₉)
+  // Slow lobe precession around the vertical axis (F12 = 144s).
+  precess = time(2.197 / (sp * (precessionRate + 0.001))) * PI2
+  cosPre = cos(precess)
+  sinPre = sin(precess)
+
+  // Mode crossfade phase (F10 = 55s, sped up by morphRate).
+  var morphT = time(0.839 / (sp * morphRate))
+  // Detect wrap → advance preset pointers.
+  if (morphT < lastMorphT) {
+    curIdx = nextIdx
+    nextIdx = (nextIdx + 1) % NUM_PRESETS
+  }
+  lastMorphT = morphT
+
+  // Smooth-step the crossfade so we ease in/out of each orbital instead
+  // of cutting linearly through superpositions.
+  var alpha = morphT * morphT * (3 - 2 * morphT)
+  var inv = 1 - alpha
+  var ci = curIdx * NUM_HARMONICS
+  var ni = nextIdx * NUM_HARMONICS
+  for (var k = 0; k < NUM_HARMONICS; k++) {
+    coeff[k] = inv * presets[ci + k] + alpha * presets[ni + k]
+  }
+
+  // Decoupled palette/hue rotation (F9 = 34s).
+  huePhase = time(0.519 / sp)
+
+  // Global breath shimmer (F7 = 13s).
+  breath = 0.6 + 0.4 * wave(time(0.198 / sp))
 }
 
+// ============================================================
+// RENDER
+// ============================================================
+
 export function render3D(index, x, y, z) {
-  var theta = thetaCache[index]
-  if (theta < -500) {
-    theta = atan2(z - 0.5, x - 0.5)
-    thetaCache[index] = theta
-  }
-
-  var depth = 1 - y
-
-  // For each family: compute phase at this (theta, depth), fold into one
-  // sector to get shortest distance to the nearest arm center, apply a
-  // rational falloff. Sector width = 2π/N → N identical arms tile the egg.
-  var phase8 = theta - SLOPE8 * depth - rot8
-  var fold8 = mod(phase8 + SECT8 * 0.5, SECT8) - SECT8 * 0.5
-  var arm8 = amp8 / (1 + fold8 * fold8 * armSharpness)
-
-  // 13-family gets 1.5× sharpness — its sectors are smaller (2π/13 vs
-  // 2π/8), so narrower arms keep the 13 lines visually distinct.
-  var phase13 = theta - SLOPE13 * depth - rot13
-  var fold13 = mod(phase13 + SECT13 * 0.5, SECT13) - SECT13 * 0.5
-  var arm13 = amp13 / (1 + fold13 * fold13 * armSharpness * 1.5)
-
-  // Probabilistic OR — arm crossings bloom brightly without clipping.
-  var combined = arm8 + arm13 - arm8 * arm13
-
-  // Spiral projection degenerates at the poles (LEDs are sparse there
-  // and arms all converge). Gently fade. 4·y·(1−y) peaks at equator.
-  var poleFade = 4 * y * (1 - y)
-  var v = baseGlow + combined * (0.3 + 0.7 * poleFade)
-
-  // Palette position: phase · 1/(2π) maps radians → palette cycles, so
-  // one revolution around the egg sweeps the full palette once per
-  // family (8 or 13 simultaneously-visible hues). Winner-take-all by
-  // family. 13-family offset by φ⁻¹ (the "most irrational" ring
-  // offset — its hues never coincide with the 8-family's). Depth adds
-  // φ⁻² (0.382) stratification. tDrift rotates the whole mapping.
-  var pos
-  if (arm8 * 1.5 > arm13) {
-    pos = phase8 * 0.1591549 + depth * 0.382 + tDrift
+  // ── Lazy per-LED cache ────────────────────────────────────
+  var phi = phiCache[index]
+  var cphi, sphi, mu, sinTh
+  if (phi < -500) {
+    phi = atan2(z - 0.5, x - 0.5)
+    cphi = cos(phi)
+    sphi = sin(phi)
+    mu = 2 * (y - 0.5)
+    if (mu > 1) mu = 1
+    if (mu < -1) mu = -1
+    var s2_init = 1 - mu * mu
+    if (s2_init < 0) s2_init = 0
+    sinTh = sqrt(s2_init)
+    phiCache[index] = phi
+    cphiCache[index] = cphi
+    sphiCache[index] = sphi
+    muCache[index] = mu
+    sinThCache[index] = sinTh
   } else {
-    pos = phase13 * 0.1591549 + depth * 0.382 + tDrift + INV_PHI
+    cphi = cphiCache[index]
+    sphi = sphiCache[index]
+    mu = muCache[index]
+    sinTh = sinThCache[index]
   }
-  pos = pos - floor(pos)
 
-  // Gamma + brightness, then PWM-dithering deadband to kill low-v flicker.
-  v = v * v * brightness
+  // ── Rotate (cphi, sphi) by precession ─────────────────────
+  var cP = cphi * cosPre - sphi * sinPre
+  var sP = cphi * sinPre + sphi * cosPre
+
+  // ── Derived terms (no transcendentals) ────────────────────
+  var mu2 = mu * mu
+  var s2  = sinTh * sinTh           // = 1 - mu²
+  var c2P = cP * cP - sP * sP       // cos(2φ)
+  var s2P = 2 * cP * sP             // sin(2φ)
+
+  // ── Evaluate Ψ = Σ cᵢ · Yᵢ ───────────────────────────────
+  var psi =
+      coeff[0]
+    + coeff[1] * mu
+    + coeff[2] * sinTh * cP
+    + coeff[3] * sinTh * sP
+    + coeff[4] * (3 * mu2 - 1) * 0.5
+    + coeff[5] * s2 * c2P
+    + coeff[6] * s2 * s2P
+    + coeff[7] * (5 * mu2 - 3) * mu * 0.5
+    + coeff[8] * mu * s2 * c2P
+
+  // ── Brightness ∝ Ψ², gamma-shaped, with breath ───────────
+  var v = psi * psi * breath * brightness
+  if (v > 1) v = 1
   if (v < 0.04) v = 0
+
+  // ── Hue: sign-driven palette split + slow drift ──────────
+  // Positive lobes land on one half of the palette ring,
+  // negative lobes on the opposite half — nodal surfaces become
+  // color borders, not just dark stripes.
+  var pos = huePhase + 0.15 * mu
+  if (psi < 0) pos = pos + 0.5
+  pos = pos - floor(pos)
 
   paint(pos, v)
 }
