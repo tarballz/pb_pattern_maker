@@ -48,7 +48,7 @@ var badX = 0.5 + amp * time(0.05)
 var okX = 0.5 + amp * sin(time(0.05) * PI2)
 ```
 Audit every `time()` use in a pattern against this before shipping — see
-`waveforms.md` for the full wave/triangle/square API.
+[`waveforms.md`](./waveforms.md) for the full wave/triangle/square API.
 
 ## Asymmetric easing
 
@@ -106,7 +106,8 @@ whole piece is warming and cooling. Registers (period = 60/breaths-per-minute):
 both product-backed; **under 2.5 s** reads anxious is an untested hypothesis
 extrapolated from respiration norms, reserve for intentional urgency and
 calibrate on-sculpture. Keep depth to ~20–45% of full brightness; bottoming to
-full-off reads as blinking, not breathing.
+full-off reads as blinking, not breathing — untested hypothesis, calibrate
+on-sculpture.
 
 ## Drift vs. events
 
@@ -139,10 +140,11 @@ per-element random speeds at startup. Shipped precedent: lava_lamp couples
 period to size (`small ⇒ short period`) so blob mass reads physically instead
 of uniform blobs moving in sync, which is the deadest possible look.
 
-**`perlinFbm`** (2–3 octaves) approximates the 1/f "regular irregularity" of
-candle flames and water natively — drive a slow `time()` tap through its third
-coordinate for a meandering, never-linear path instead of jittering per-frame:
-`px = x + 0.2 * perlin(time(0.15) * 4, 0, 0, seed)`.
+**`perlinFbm(x, y, z, lacunarity, gain, octaves)`** at 2–3 octaves approximates
+the 1/f "regular irregularity" of candle flames and water natively — drive a
+slow `time()` tap through one coordinate for a meandering, never-linear path
+instead of jittering per-frame:
+`px = x + 0.2 * perlinFbm(time(0.15) * 4, 0, 0, 2, 0.5, 3)`.
 
 ## Speed as register
 
@@ -163,7 +165,7 @@ enough to flicker. Frame-rate independence is a hard rule, not a nicety —
 `time()` is wall-clock already; anything driven by `delta` must integrate it
 (`t = (t + delta * speed) % 1`) rather than incrementing per frame, or the same
 pattern runs at wildly different speeds on a 40 FPS map versus a 400 FPS strip
-(full mechanics in `waveforms.md`).
+(full mechanics in [`waveforms.md`](./waveforms.md)).
 
 ## Palette cadence — the slowest timescale
 
