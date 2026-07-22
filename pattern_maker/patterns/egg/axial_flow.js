@@ -263,7 +263,9 @@ export function render3D(index, x, y, z) {
   var bdSq = psq - proj
   var beacon = beaconGlow * max(0, 1 - bdSq * 10)
 
-  var v = min(ring + beacon, 1)
+  // Colored floor: rings and beacon both fall to true 0 between bands,
+  // so keep a low always-on glow rather than dropping to (0,0,0).
+  var v = 0.05 + 0.95 * min(ring + beacon, 1)
 
   // Hemisphere hue sweep — each hemisphere maps equator→pole onto a
   // full half of the palette, so the whole palette is visible across
@@ -275,7 +277,10 @@ export function render3D(index, x, y, z) {
 }
 
 // 2D fallback: slice at z == 0. In 2D the axis collapses to a plane
-// orientation — still a clean rolling-stripe pattern.
+// orientation — still a clean rolling-stripe pattern. Caveat: the pole
+// beacon lives off this flat slice whenever the tumbling axis tilts
+// toward/away from z, so it can pop in and out of the panel as the
+// axis turns rather than staying continuously visible.
 export function render2D(index, x, y) {
   render3D(index, x, y, 0)
 }

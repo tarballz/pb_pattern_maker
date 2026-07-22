@@ -260,3 +260,8 @@ export function render3D(index, x, y, z) {
 export function render2D(index, x, y) {
   render3D(index, x, y, 0.5)
 }
+
+export function render(index) {
+  var p = index / pixelCount
+  render3D(index, 0.5, p, 0.5)
+}

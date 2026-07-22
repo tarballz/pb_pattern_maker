@@ -2,7 +2,16 @@
 // Three traveling waves on three axes multiplied together produce sparse,
 // bright filaments that twist through the egg's volume. Hue spirals up the
 // z-axis. Cycles through 4 high-saturation palettes with smooth blends.
-// Sliders: Speed (animation rate), Brightness (overall intensity)
+//
+// Palette default is the house few-hue-family register (color-craft.md):
+// each of the 4 default palettes arcs across one or two adjacent hue
+// families instead of the full wheel, keeping the same brightness/value
+// energy that made the original full-rainbow set feel "high energy." The
+// original full-rainbow palettes are kept intact and reachable — push
+// Psychedelic above halfway to swap back to them.
+// Sliders: Speed (animation rate), Brightness (overall intensity),
+//          Psychedelic (0 = house palette set [default], 1 = original
+//          full-rainbow palette set)
 
 ////////////////////////////////
 // START PALETTE STUFF
@@ -99,7 +108,52 @@ var Spectrum_gp = [
 
 arrayMutate(Spectrum_gp,(v, i ,a) => v / 255);
 
-var palettes = [harryrainbow_gp, hueshift_gp, luxoorb_gp, Spectrum_gp]
+// House-register default palettes — color-craft.md's "fewer saturated
+// hues" convention: each arcs across one or two adjacent hue families
+// (with a dark, tinted anchor at both ends so the crossfade loops
+// cleanly) rather than sweeping the full hue wheel. Value contrast, not
+// hue diversity, carries the "high energy" read here.
+
+//deep indigo-electric blue-cyan arc
+var hyperVoltBlue_gp = [
+    0,   5, 10, 60,
+   64,   0, 60,200,
+  128,   0,200,255,
+  192,  90,255,255,
+  255,   5, 10, 60]
+arrayMutate(hyperVoltBlue_gp,(v, i ,a) => v / 255);
+
+//ember red-orange-gold arc
+var hyperEmberGold_gp = [
+    0,  20,  2,  2,
+   64, 200, 30,  0,
+  128, 255,120,  0,
+  192, 255,200, 40,
+  255,  20,  2,  2]
+arrayMutate(hyperEmberGold_gp,(v, i ,a) => v / 255);
+
+//violet-magenta-rose arc
+var hyperMagentaRose_gp = [
+    0,  15,  2, 20,
+   64, 120,  0,160,
+  128, 220,  0,140,
+  192, 255, 90,180,
+  255,  15,  2, 20]
+arrayMutate(hyperMagentaRose_gp,(v, i ,a) => v / 255);
+
+//teal-cyan-aqua arc
+var hyperTealAqua_gp = [
+    0,   2, 15, 15,
+   64,   0,120,110,
+  128,   0,220,180,
+  192,  90,255,220,
+  255,   2, 15, 15]
+arrayMutate(hyperTealAqua_gp,(v, i ,a) => v / 255);
+
+var housePalettes = [hyperVoltBlue_gp, hyperEmberGold_gp, hyperMagentaRose_gp, hyperTealAqua_gp]
+var rainbowPalettes = [harryrainbow_gp, hueshift_gp, luxoorb_gp, Spectrum_gp]
+
+var palettes = housePalettes
 
 var PALETTE_HOLD_TIME = 10
 var PALETTE_TRANSITION_TIME = 3
@@ -194,9 +248,17 @@ function setupPalette(delta) {
 
 var speedMult = 1.0
 var brightness = 1.0
+var psychedelic = 0
 
 export function sliderSpeed(v) { speedMult = 0.2 + v * 3 }
 export function sliderBrightness(v) { brightness = v }
+
+// 0 (default) = house few-hue-family palette set; above halfway swaps
+// back to the original full-rainbow set for the old psychedelic look.
+export function sliderPsychedelic(v) {
+  psychedelic = v
+  palettes = (v > 0.5) ? rainbowPalettes : housePalettes
+}
 
 export function beforeRender(delta) {
   setupPalette(delta)
