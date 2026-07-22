@@ -277,9 +277,16 @@ export function render3D(index, x, y, z) {
   paint(h, min(v, 1) * brightness)
 }
 
-// As we commonly do with 3D fields, a decent 2D rendering is a slice at z == 0
+// 2D strategy: slice at K=0.5 (2d-parity.md decision tree Q2 — separable
+// sphere lattice, level sets are radial/repeating). z=0 sits on the fill-
+// normalized volume's boundary edge, where the z factor of the product
+// (wave(z * scale + wave(t3))) collapses to a spatially-flat scalar that
+// measured near-degenerate in practice (sdV 0.009, 2 colors) — the same
+// failure class as pulsars' K=0 bug. K=0.5 passes through the volume's
+// center instead, where the lattice is densest, and restores real spatial
+// variation (sdV ~0.05, 13 colors) without touching render3D.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0)
+  render3D(index, x, y, 0.5)
 }
 
 /*

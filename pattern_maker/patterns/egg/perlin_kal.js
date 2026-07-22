@@ -341,9 +341,19 @@ export function render2D(index, x, y) {
   // Colored floor: far from every perlin line, r/g/b clamp to 0 and v hits
   // true black. Keep a faint floor so the background reads as dim/negative
   // space instead of dead pixels (color-craft.md).
+  //
+  // The floor must survive the brightness multiply below — applying it
+  // before the multiply lets a low Brightness slider push lit pixels back
+  // under the ~0.04 dithering deadband, undoing the whole point of having a
+  // floor (same bug shape already fixed in axial_flow.js). Re-clamp after
+  // the multiply, but only while the pattern is actually on, so
+  // Brightness=0 still means fully off rather than a phantom glow.
   v = max(v, 0.05)
 
-  paint(h, v * brightness)
+  var vOut = v * brightness
+  if (brightness > 0) vOut = max(vOut, 0.045)
+
+  paint(h, vOut)
 }
 
 /*
