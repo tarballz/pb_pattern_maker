@@ -18,14 +18,14 @@ focus exists; the eye has somewhere to return to, not just ambient wash.
 Fix: [composition.md#focal-interest-without-a-frame](./composition.md#focal-interest-without-a-frame)
 
 **Readable from 10 ft / sculpture-viewing distance?**
-Pass: at most two-to-three spatial octaves, minimum feature size ~3 LED
-spacings; detail doesn't alias into shimmer at real viewing range.
+Pass: distinct features are readable without shimmer or aliasing at real
+sculpture-viewing distance; see the doc for the octave/spacing calibration.
 Fix: [composition.md#scale-contrast-two-octaves-not-five](./composition.md#scale-contrast-two-octaves-not-five)
 
 **At least two independent timescales, and every `time()` use wrap-safe?**
-Pass: slow/medium/fast layers are 4–15x apart in period; every quantity
-built from `time()` passes through `wave`/`triangle`/`sin` or is used as
-pure phase, never a raw position.
+Pass: layers feel distinctly paced — no two layers blur into one motion;
+every quantity built from `time()` passes through `wave`/`triangle`/`sin`
+or is used as pure phase, never a raw position.
 Fix: [motion-design.md#timescale-layering](./motion-design.md#timescale-layering), [motion-design.md#wrap-safety](./motion-design.md#wrap-safety)
 
 **Does the pattern breathe or otherwise idle alive, without visible looping?**
