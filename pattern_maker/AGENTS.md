@@ -9,6 +9,11 @@ Read these references (they are in this project):
 - `references/language.md` — built-in functions and signatures
 - `references/3d-techniques.md` — spatial pattern techniques
 - `references/waveforms.md` — animation timing
+- `references/color-craft.md` — palette and background color decisions
+- `references/motion-design.md` — timescale layering and wrap-safe motion
+- `references/composition.md` — layer stack, focal interest, scale
+- `references/2d-parity.md` — designing `render2D` as its own pattern
+- `references/visual-rubric.md` — pre-delivery visual quality checklist
 
 Study example patterns in `examples/` for idiomatic PixelBlaze code.
 
@@ -46,6 +51,13 @@ Study example patterns in `examples/` for idiomatic PixelBlaze code.
 6. **Gamma correction**
    - Apply `v * v` (quadratic) or `v * v * v` (cubic) to the value/brightness channel
    - Linear brightness looks washed out on LEDs — gamma correction makes it perceptually correct
+
+7. **Visual quality**
+   - No pure-black background unless the darkness is an intentional, named design choice — give it a colored floor (`references/color-craft.md`)
+   - Default to a `palettes`-array palette; raw `hsv()` math is the exception and needs a stated reason (`references/color-craft.md`)
+   - At least two independent, wrap-safe timescales; motion is delta-based only (`references/motion-design.md`)
+   - Design `render2D` via the decision tree before writing it — never a reflexive `z=0.5` slice; the 2D render must stand on its own (`references/2d-parity.md`)
+   - Before delivering, run every question in `references/visual-rubric.md` against both the 3D and 2D renders; fix failures or document them as intentional in the pattern header
 
 ## Pattern Template
 
@@ -96,12 +108,15 @@ export function render2D(index, x, y) {
 ## Workflow
 
 1. Read the relevant reference files for the technique you'll use
-2. Write the pattern following the template above
+2. Write the pattern following the template above — decide the `render2D` strategy now,
+   via `references/2d-parity.md`'s decision tree, not as an afterthought
 3. Verify against safety-rules.md mentally before presenting
-4. Run `uv run python validate.py <file>` — must pass with no errors
-5. If the device is reachable, run `uv run python pb.py compile <file>` — this compiles
+4. Run every question in `references/visual-rubric.md` against both the 3D and 2D
+   renders; fix failures or document them as intentional in the pattern header
+5. Run `uv run python validate.py <file>` — must pass with no errors
+6. If the device is reachable, run `uv run python pb.py compile <file>` — this compiles
    with the real PixelBlaze compiler and is the definitive syntax check
-6. Deliver with `uv run python pb.py push <file>` for a live trial (add `--save` to keep
+7. Deliver with `uv run python pb.py push <file>` for a live trial (add `--save` to keep
    it), or tell the user to paste into the web editor if the device is offline
-7. For visual iteration without hardware, the emulator at
+8. For visual iteration without hardware, the emulator at
    `~/code/pb/pixelblaze-pattern-emulator` renders patterns on the real maps (`npm run dev`)
