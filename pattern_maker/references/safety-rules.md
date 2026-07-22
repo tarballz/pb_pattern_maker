@@ -98,6 +98,12 @@ Array methods (forEach, map, reduce) cannot access variables from outside the ca
 - 1000+ LEDs: keep render minimal, cache everything possible
 - For Voronoi patterns: max ~4-6 seed points at 1000+ LEDs
 
+These thresholds are rules of thumb. To actually measure, run
+`pb.py perf <pattern> --map <your map>` — it reports estimated FPS on a V3
+for your real pixel count, and whether the pattern is compute-bound (optimize
+the render function) or output-bound (the LED wiring is the ceiling, so
+optimizing the pattern won't help).
+
 ## Fixed-Point Gotchas
 
 ### Overflow

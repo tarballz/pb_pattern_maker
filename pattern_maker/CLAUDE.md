@@ -35,6 +35,7 @@ uv run python pb.py list                         # patterns on the device
 uv run python pb.py vars [speed=0.5 ...]         # read/set exported vars
 uv run python pb.py backup egg.pbb               # full device backup
 uv run python pb.py frame -o frame.ppm           # snapshot the preview frame
+uv run python pb.py perf patterns/egg/foo.js --map maps/egg_mapping/led_map_3d.csv  # est. hardware FPS (no device)
 ```
 
 ## Conventions

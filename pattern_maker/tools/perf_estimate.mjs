@@ -43,7 +43,7 @@ if (!existsSync(join(EMU, 'src/vm/hwmodel.js'))) {
 }
 
 const imp = (rel) => import(pathToFileURL(join(EMU, rel)).href)
-const { estimateHardwareFps, HW_EST } = await imp('src/vm/hwmodel.js')
+const { estimateHardware } = await imp('src/vm/hwmodel.js')
 const { countExpensiveRenderOps } = await imp('src/vm/lint.js')
 const { parseMapContent, prepareMap, selectRenderFnInfo } = await imp('src/map/index.js')
 const { createVM } = await imp('src/vm/index.js')
@@ -69,15 +69,12 @@ try {
 }
 
 const expensiveOpCount = countExpensiveRenderOps(source, renderPicked.split(' ')[0])
-const estFps = estimateHardwareFps({ pixelCount, outputMethod: args.outputMethod, expensiveOpCount })
-
-const out = HW_EST.OUTPUT[args.outputMethod] || HW_EST.OUTPUT.ws2812
-const computeRate = HW_EST.COMPUTE_PX_PER_SEC / (1 + HW_EST.EXPENSIVE_OP_PENALTY * expensiveOpCount)
-const tCompute = pixelCount / computeRate
-const tOutput = out.rate === Infinity ? 0 : pixelCount / out.rate + out.resetSec
+// estimateHardware is the same function backing the emulator's HUD, so
+// `bound` here can never drift from what the HUD would show for this pattern.
+const { fps: estFps, bound } = estimateHardware({ pixelCount, outputMethod: args.outputMethod, expensiveOpCount })
 
 process.stdout.write(JSON.stringify({
   pixelCount, dim, renderPicked, expensiveOpCount,
-  estFps, bound: tCompute >= tOutput ? 'compute' : 'output',
+  estFps, bound,
   outputMethod: args.outputMethod
 }) + '\n')

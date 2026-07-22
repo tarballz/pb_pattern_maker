@@ -127,3 +127,6 @@ export function render(index) {
    it), or tell the user to paste into the web editor if the device is offline
 8. For visual iteration without hardware, the emulator at
    `~/code/pb/pixelblaze-pattern-emulator` renders patterns on the real maps (`npm run dev`)
+9. To check the performance budget without a device, run
+   `uv run python pb.py perf <file> --map <map.csv>` — it needs no device, reporting
+   estimated hardware FPS and whether the pattern is compute- or output-bound

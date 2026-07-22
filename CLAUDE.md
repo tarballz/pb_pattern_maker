@@ -35,6 +35,7 @@ cd pattern_maker && uv run pytest test_validate.py
 cd pattern_maker && uv run python pb.py compile patterns/egg/foo.js   # real bytecode compile check
 cd pattern_maker && uv run python pb.py push patterns/egg/foo.js      # live trial (--save to keep)
 cd pattern_maker && uv run python pb.py devices                       # discover / list / vars / backup / frame
+cd pattern_maker && uv run python pb.py perf patterns/egg/foo.js --map maps/egg_mapping/led_map_3d.csv  # est. hardware FPS (no device)
 ```
 
 ### Palette maker (run from `palette_maker/`)

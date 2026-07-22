@@ -161,7 +161,7 @@ def cmd_perf(args):
         print(f"  {result['pixelCount']} pixels ({result['dim']}D map) -> {result['renderPicked']}")
         print(f"  {result['expensiveOpCount']} expensive op(s) in the rendered function")
         print(f"  est. {fps:.1f} FPS on V3 / {result['outputMethod']} ({result['bound']}-bound)")
-    if args.min_fps and result["estFps"] < args.min_fps:
+    if args.min_fps is not None and result["estFps"] < args.min_fps:
         sys.exit(f"FAIL: {result['estFps']:.1f} FPS is below --min-fps {args.min_fps}")
 
 

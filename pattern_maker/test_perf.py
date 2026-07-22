@@ -17,7 +17,14 @@ integration = pytest.mark.skipif(
 )
 
 
-def test_requires_map_or_pixel_count():
+def test_requires_map_or_pixel_count(monkeypatch):
+    # The node harness would raise the same SystemExit via its own validation
+    # if we shelled out to it, which would let this test pass even if the
+    # Python-side guard were deleted. Assert we never get that far: fail loudly
+    # if subprocess.run is reached, so this test actually exercises the guard.
+    def should_not_shell_out(*a, **k):
+        raise AssertionError("should not have shelled out")
+    monkeypatch.setattr(pb.subprocess, "run", should_not_shell_out)
     with pytest.raises(SystemExit):
         pb.run_perf_estimate("patterns/egg/gyroid.js")
 
