@@ -98,4 +98,10 @@ export function render2D(index, x, y) {
 1. Read the relevant reference files for the technique you'll use
 2. Write the pattern following the template above
 3. Verify against safety-rules.md mentally before presenting
-4. Tell the user to run `uv run python validate.py <file>` before pasting into the device
+4. Run `uv run python validate.py <file>` — must pass with no errors
+5. If the device is reachable, run `uv run python pb.py compile <file>` — this compiles
+   with the real PixelBlaze compiler and is the definitive syntax check
+6. Deliver with `uv run python pb.py push <file>` for a live trial (add `--save` to keep
+   it), or tell the user to paste into the web editor if the device is offline
+7. For visual iteration without hardware, the emulator at
+   `~/code/pb/pixelblaze-pattern-emulator` renders patterns on the real maps (`npm run dev`)

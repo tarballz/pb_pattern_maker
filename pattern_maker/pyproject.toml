@@ -1,0 +1,12 @@
+[project]
+name = "pattern-maker"
+version = "0.1.0"
+description = "Static analysis and tooling for PixelBlaze patterns"
+requires-python = ">=3.11"
+dependencies = [
+    "esprima>=4.0.1",
+    "pixelblaze-client>=1.1.7",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
