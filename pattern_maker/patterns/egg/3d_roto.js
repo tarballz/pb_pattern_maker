@@ -8,6 +8,8 @@
 
   This pattern assumes a 3D installation that's been mapped in the Mapper tab,
   but degrades to somewhat less interesting projections in 2D and 1D.
+
+  Sliders: Speed (rotation rate), Brightness (overall intensity)
 */
 
 
@@ -213,7 +215,12 @@ function setupPalette(delta)
 
 
 scale = 1 / (PI * PI) // How wide the "spotlights" are
-speed = 0.3           // How fast they rotate around
+
+var speed = 0.3        // How fast they rotate around
+var brightness = 1
+
+export function sliderSpeed(v) { speed = 0.05 + v * 0.55 }   // remap the previous fixed 0.3
+export function sliderBrightness(v) { brightness = v }
 
 export function beforeRender(delta) {
   setupPalette(delta);
@@ -255,7 +262,12 @@ export function render3D(index, _x, _y, _z) {
   // the spotlight body has a gradient and the whole thing migrates through
   // the palette as time passes. Cone cores clip past 1.0 toward white.
   h = rz + t4
-  paint(h, pow(1 + dist, 4))
+
+  // Colored floor: away from every cone, pow(1+dist,4) hits true 0. Blend in
+  // a low-amplitude ember term (keyed off the rotated z axis, same as h) so
+  // no pixel goes to full black.
+  v = max(pow(1 + dist, 4), 0.05 + 0.05 * wave(t4 + rz))
+  paint(h, v * brightness)
 }
 
 // A planar slice of this pattern will look like a projection surface that

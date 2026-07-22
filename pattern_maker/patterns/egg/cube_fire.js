@@ -10,6 +10,8 @@
   position. This results in a regular 3D array of spheres. The size of the
   spheres pulses, and their position in 3D space oscillates at different
   frequencies.
+
+  Sliders: Speed (sphere travel/pulse rate), Brightness (overall intensity)
 */
 
 // START PALETTE STUFF
@@ -213,15 +215,22 @@ function setupPalette(delta)
 // END PALETTE STUFF
 
 
-speed = 0.5  // How fast the spheres travel through 3D space
+var speed = 0.5      // How fast the spheres travel through 3D space
+var brightness = 1
+
+export function sliderSpeed(v) { speed = 0.1 + v * 1.9 }
+export function sliderBrightness(v) { brightness = v }
 
 export function beforeRender(delta) {
 
   setupPalette(delta);
 
-  t1 = time(.1 / speed)    // x offset
-  t2 = time(.13 / speed)   // y offset
-  t3 = time(.085 / speed)  // z offset
+  // Timescales spread apart (~6x) rather than clustered within 1.5x of each
+  // other, so x/y/z motion reads as distinct paces instead of one blurred
+  // wobble (motion-design.md timescale layering).
+  t1 = time(.1 / speed)    // x offset — fast
+  t2 = time(.6 / speed)    // y offset — slow, ~6x t1
+  t3 = time(.045 / speed)  // z offset — fast, different axis
 
   // Oscillate the scale coefficient of space between 0.25 and 0.75
   scale = (.5 + wave(time(.1))) / 2
@@ -254,11 +263,16 @@ export function render3D(index, x, y, z) {
   ember = 0.04 + 0.06 * wave(x * 2 + y * 2 + z * 2 + t1 * 3)
   v = max(v, ember)
 
+  // Give one sphere per lattice period a brighter core so the eye has a
+  // single wandering "brightest sphere" to track instead of an undifferentiated
+  // lattice (composition.md focal-rhythm guidance).
+  if (mod(floor(x * scale) + floor(y * scale) + floor(z * scale), 7) == 0) v *= 1.4
+
   // hsv() caps v at 1.0 internally; paint() does not, so unclamped v multiplies
   // every channel of the palette color past 1.0 and clips toward white. Cap to
   // keep saturated palette hues at the bright cores.
   //hsv(h, s, v)
-  paint(h, min(v, 1))
+  paint(h, min(v, 1) * brightness)
 }
 
 // As we commonly do with 3D fields, a decent 2D rendering is a slice at z == 0

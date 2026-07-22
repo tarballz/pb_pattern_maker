@@ -26,6 +26,8 @@
 
   This pattern builds on the example "pulse 2D". To best understand this one,
   start there.
+
+  Sliders: Speed (animation rate), Brightness (overall intensity)
 */
 
 ////////////////////////////////
@@ -239,11 +241,17 @@ function setupPalette(delta)
 // END PALETTE STUFF
 ////////////////////////////////
 
+var speed = 1
+var brightness = 1
+
+export function sliderSpeed(v) { speed = 0.3 + v * 2.4 }
+export function sliderBrightness(v) { brightness = v }
+
 export function beforeRender(delta) {
 
   setupPalette(delta)
 
-  tf = 5 // Overall animation duration constant. A smaller duration runs faster.
+  tf = 5 / speed // Overall animation duration constant. A smaller duration runs faster.
 
   f  = wave(time(tf * 6.6 / 65.536)) * 5 + 2 // 2 to 7; Frequency (cell density)
   t1 = wave(time(tf * 9.8 / 65.536)) * PI2  // 0 to 2*PI; Oscillates x shift
@@ -288,7 +296,7 @@ export function render2D(index, x, y) {
   // original code does HSV. Using this instead of paint turns off all palettes.
   //hsv(h, 1, v)
 
-  paint(h,v)
+  paint(h, v * brightness)
 
 }
 

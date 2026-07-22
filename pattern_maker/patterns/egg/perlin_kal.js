@@ -6,6 +6,15 @@
 
  Try with Reflections slider set to minimum to see the noise lines!
 
+ 2D strategy: this pattern is 2D-native by construction — the kaleidoscope
+ fold operates directly on the panel's own (x,y), so render2D is the primary
+ design (2d-parity.md strategy d, re-compose). render3D is a projection back
+ onto it: z is folded into a small helical (x,y) offset, the same convention
+ hc_pat.js uses in the opposite direction.
+
+ Sliders: Speed (fold/noise drift rate), LineWidth (base texture thickness),
+ Reflections (kaleidoscope slice count), Brightness (overall intensity)
+
  MIT License
 
  Take this code and use it to make cool things!
@@ -220,10 +229,16 @@ export var speed = 0.5;
 export var nSides = 3;
 var slice = PI/nSides;
 var outx,outy;
+var brightness = 1;
 
 // movement speed
 export function sliderSpeed(v) {
   speed = 0.25 + 2 * v * v;
+}
+
+// overall intensity
+export function sliderBrightness(v) {
+  brightness = v;
 }
 
 // width of base texture lines
@@ -249,14 +264,19 @@ function kal(x,y,r,theta) {
 }
 
 var timebase = 0;
-var t1,theta;
+var t1,t2,theta;
 export function beforeRender(delta) {
 
   setupPalette(delta)
 
   timebase = (timebase + delta / 1000)  % 3600;
   t1 = timebase * speed;
-  theta = PI * t1;
+
+  // Second, slower, wrap-safe timescale (phi-flavored period, incommensurate
+  // with t1) — a gentle independent wobble on the fold rotation so the piece
+  // doesn't run on a single blurred timescale (motion-design.md layering).
+  t2 = time(0.618 / speed);
+  theta = PI * t1 + PI2 * 0.08 * wave(t2);
 }
 
 //convert RGB to HSV
@@ -313,7 +333,36 @@ export function render2D(index, x, y) {
 
   //rgb(r, g, b);
   rgb2hsv(r, g, b)
-  paint(h, v)
+
+  // Gamma the final value channel (Rule 6) — not the pre-hsv linear r/g/b
+  // triple, which would distort the line-width falloff shape instead.
+  v = v * v
+
+  // Colored floor: far from every perlin line, r/g/b clamp to 0 and v hits
+  // true black. Keep a faint floor so the background reads as dim/negative
+  // space instead of dead pixels (color-craft.md).
+  v = max(v, 0.05)
+
+  paint(h, v * brightness)
+}
+
+/*
+  render3D projects the egg's surface back onto this pattern's native 2D
+  kaleidoscope domain: z is folded into a small helical (x,y) offset (the
+  same convention hc_pat.js uses for its own 2D-primary/3D-projection
+  pairing), rather than slicing a flat plane through a field that has no
+  natural 3D form of its own.
+*/
+export function render3D(index, x, y, z) {
+  var x1 = x - 0.5 + 0.15 * cos(z * PI2)
+  var y1 = y - 0.5 + 0.15 * sin(z * PI2)
+  render2D(index, x1, y1)
+}
+
+// 1D fallback: walk a line through the 2D kaleidoscope domain.
+export function render(index) {
+  var pct = index / pixelCount
+  render2D(index, 3 * pct - 0.5, 0)
 }
 
 
