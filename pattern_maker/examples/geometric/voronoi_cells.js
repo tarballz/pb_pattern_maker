@@ -1,7 +1,54 @@
-// Voronoi Cells
-// N seed points bouncing in the bounding box, nearest-distance coloring.
-// Each pixel is colored by its nearest seed point.
-// Controls: Speed (bounce rate), Brightness (intensity), Cells (number of seeds)
+/*
+  Voronoi Cells
+
+  Colored crystal cells that tile the whole volume, their dark boundary
+  walls gliding as the invisible seed points bounce around the bounding box.
+  Each pixel belongs to its nearest seed and wears that seed's fixed hue;
+  brightness falls to black along the ridge where two cells meet, so the
+  sculpture reads as slowly reshaping stained glass.
+
+  Techniques demonstrated:
+    - Delta-based motion: seed positions integrate delta * speed each frame,
+      so the bounce runs at the same wall-clock rate on a 40 FPS map or a
+      400 FPS strip (motion-design.md#speed-as-register).
+    - Edge shading from the nearest/second-nearest distance difference:
+      smoothstep(0, 0.04, secondD - minD) is the smoothstep-shell falloff,
+      width sized near LED pitch so borders stay crisp without aliasing
+      (composition.md#foreground-shapes--falloffs).
+    - Per-element variation: each seed carries its own velocity vector and
+      hue, so cells never move in lockstep
+      (motion-design.md#drift-vs-events, per-element jitter).
+    - Voronoi budget: 6 seed slots max with hypot3 per seed per pixel — the
+      documented practical ceiling at 1000+ LEDs
+      (references/safety-rules.md, performance budget).
+    - Quadratic gamma on v before output (color-craft.md#gamma-as-aesthetics).
+
+  2D strategy: slice at K=0.5 — decision-tree Q2: Voronoi level sets are
+  separable, and a planar cut of a 3D Voronoi diagram is a true 2D Voronoi
+  diagram (the doc's own Q2 example). K=0.5 crosses the action: seeds roam
+  the full 0..1 box on every axis, so the slice plane always intersects
+  live cells — no pulsars-style dead-plane failure
+  (2d-parity.md#the-decision-tree, #known-failure-classes class 2).
+
+  Known deviations vs the reference docs (documented per visual-rubric.md;
+  geometric register, code intentionally left as-is):
+    - Six evenly spaced rainbow hues instead of one or two hue families —
+      a deliberate geometric-register deviation; the cells stay legible
+      because they are spatially separated, not overlapped
+      (color-craft.md#hue-relationships-on-leds).
+    - Cell borders fall to true black: intentional negative space (the
+      walls ARE the structure), the documented exception to the colored
+      floor rule (color-craft.md#background-is-a-color-decision).
+    - Single positional timescale: per-seed velocities differ but occupy
+      one speed band, and there is no event or breathing layer — borderline
+      against motion-design.md#timescale-layering; a slow global hue or
+      brightness drift would be the doc-conformant fix.
+
+  Sliders:
+    Speed       bounce rate
+    Brightness  overall intensity
+    Cells       number of live seeds (2-6; fewer = larger crystals)
+*/
 
 var speed = 0.04
 var brightness = 1
