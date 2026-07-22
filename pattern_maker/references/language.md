@@ -96,9 +96,9 @@ Constants: `PI` (3.14159...), `PI2` (6.28318...)
 | Function | Description | Return Range |
 |---|---|---|
 | `perlin(x, y, z, seed)` | Gradient noise (1D/2D/3D, seed optional) | approx -0.5 to 0.5 |
-| `perlinFbm(x, y, z, octaves)` | Fractal Brownian Motion | wider than perlin |
-| `perlinTurbulence(x, y, z, octaves)` | Abs-value fbm (billowy) | 0+ |
-| `perlinRidge(x, y, z, octaves, offset)` | Ridged multifractal | 0+ |
+| `perlinFbm(x, y, z, lacunarity, gain, octaves)` | Fractal Brownian Motion (6 args — verified against shipped patterns) | wider than perlin |
+| `perlinTurbulence(x, y, z, lacunarity, gain, octaves)` | Abs-value fbm (billowy) | 0+ |
+| `perlinRidge(x, y, z, lacunarity, gain, offset, octaves)` | Ridged multifractal | 0+ |
 | `setPerlinWrap(xPeriod, yPeriod, zPeriod)` | Make perlin tile with integer periods | — |
 
 To normalize perlin to 0–1: `(perlin(x, y, z, seed) + 0.5)`
@@ -108,6 +108,18 @@ All parameters except the last are positional — use fewer for lower dimensions
 - `perlin(x, y)` — 2D
 - `perlin(x, y, z)` — 3D
 - `perlin(x, y, z, seed)` — 3D with seed (different seeds = independent noise)
+
+## Gradient palettes
+
+| Function | Description |
+|---|---|
+| `setPalette(arr)` | Install a gradient palette from a flat array `[pos,r,g,b, pos,r,g,b, ...]` — positions ascending 0–1, colors 0–1. Call in `beforeRender` (cheap; rebuild/blend arrays there too) |
+| `paint(pos, v)` | Emit the palette color at `pos` (0–1) scaled by brightness `v` (`v` optional, defaults 1). Unlike `hsv()`, `v` is **not clamped** — values >1 push channels toward white; clamp first unless deliberate |
+
+Palette arrays must be pre-allocated outside render functions like any other
+array. House convention: patterns carry a `palettes` array of named stops
+(what `palette_maker`'s `palette.py insert` targets) and blend/install the
+active one in `beforeRender` — see `color-craft.md` and `patterns/egg/lava_lamp.js`.
 
 ## Seeded PRNG
 
