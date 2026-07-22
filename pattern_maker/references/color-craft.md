@@ -27,18 +27,12 @@ hue-cycling, and budget more `v` for blue than intuition suggests.
 
 ## Gamma as aesthetics
 
-LED PWM output is linear in duty cycle; human brightness perception is not —
-we're far more sensitive to small changes near black than near full. Skipping
-gamma makes patterns look washed out with mushy midtones. `v*v` is the
-standard fast default (~γ2); `v*v*v` for dark-room installs or deep, punchy
-blacks. Gamma goes **last**, applied to `v` right before
-`hsv()`/`rgb()`/`paint()` — not to intermediate fields, and not baked into a
-palette that's also getting per-pixel `v` modulation (double-correction).
-
-```js
-hsv(h, s, v * v)       // default — crisp, keeps ambient floors visible
-hsv(h, s, v * v * v)   // dark room / long fades — deeper blacks, more punch
-```
+`v*v`/`v*v*v` gamma is mandatory on LEDs — see `3d-techniques.md`'s Gamma
+Correction section for the mechanism; this is a placement/aesthetics note,
+not a repeat. Gamma goes **last**, on `v` right before
+`hsv()`/`rgb()`/`paint()`, never on intermediate fields or a palette that's
+also getting per-pixel `v` modulation (double-correction). `v*v` is the
+crisp default; `v*v*v` deepens blacks for dark-room installs/long fades.
 
 **The low-`v` stairstep.** After gamma, very low values collapse toward the
 dark quantization floor — slow fades near black visibly step, and mixed
@@ -100,7 +94,7 @@ this repo** over live `hsv()` math whenever color is art-directed:
 pulls a curated stop list, `palette.py insert <slug> <pattern.js>` drops it
 into a pattern's `palettes` array. `setPalette([pos,r,g,b,...])` +
 `paint(pos, v)` puts interpolation in firmware, separating structure from
-dynamics.
+dynamics — live arrays crossfade over time (cadence: `motion-design.md`).
 
 ```js
 var lava_classic = [
@@ -125,18 +119,20 @@ can't carry.
 
 ## Hue relationships on LEDs
 
-**Limit to ~2-3 saturated hues at once.** Overlapping saturated colors add
-toward white rather than a blended third hue, and two-channel hues (yellow,
-magenta, cyan) are inherently brighter than single-channel ones at equal
-`v` — three competing saturated hues can't be balanced by one global `v`;
-one dominates. Curated palettes (this repo's `palettes` arrays included)
-stick to one or two hue families plus a neutral pole.
+**Two verified mechanisms push toward fewer saturated hues.** Overlapping
+saturated colors add toward white rather than a blended third hue, and
+two-channel hues (yellow, magenta, cyan) are inherently brighter than
+single-channel ones at equal `v` — several competing hues can't be balanced
+by one global `v`; one dominates. Curated palettes (this repo's `palettes`
+arrays included) mostly land on one or two hue families plus a neutral pole
+— a house convention these mechanisms explain, not a hard cap.
 
-**Complementary pairs (red+cyan, orange+blue, magenta+green) read well:**
-opposite wheel sides sum toward white, not a muddy third hue, so edges stay
-crisp. **Pairs that merge:** anything adjacent to green — louder in every
-mix, so green+cyan or green+yellow-green fuse unless the weaker partner
-gets extra `v` and spatial separation.
+**Green dominates its neighbors** — verified (mcd numbers above): pair green
+with cyan or yellow-green and give the weaker partner extra `v` and spatial
+separation, or it reads as green-with-a-fringe. **Untested hypothesis:**
+opposite-wheel pairs (red+cyan, orange+blue, magenta+green) read as crisper
+edges than adjacent ones — plausible from "sum toward white" above, but no
+LED-community source states it outright; verify on hardware.
 
 **Sign-split / complementary structure encoding.** When two entities or two
 regions of a field need to read as distinct, offset their palette position
@@ -163,6 +159,10 @@ dominant hue family), and clamp a brightness floor so nothing emits true
 v = max(v, 0.09)                      // never fully off — see visual-rubric.md deadband
 hsv(hBg, 1, 0.09 + vFg * 0.91)        // or fold the floor directly into the ramp
 ```
+
+PixelBlaze's HSV has real dynamic range down low — `v ≈ 0.005` stays visible
+in a dark room (Hencke) — so 0.09 above is a *house-aesthetic* floor, not
+the hardware's dim limit; darker ambients than 0.09 are legitimate too.
 
 Background hue sets the mood (cool violet/teal = ambient/night, warm dim =
 ember/dusk) — pick it deliberately, not as a leftover from `v = 0`.
@@ -216,4 +216,5 @@ paint(pos, min(v, 1))
 - PixelBlaze forum: Working with Hues — https://forum.electromage.com/t/working-with-hues-in-pixelblaze-color-ranges-blending/687
 - PixelBlaze forum: Color palette support? (Scruffynerf's cosine-palette adoption; setPalette/paint) — https://forum.electromage.com/t/color-palette-support/192
 - PixelBlaze forum: HSV gives varying brightness — https://forum.electromage.com/t/hsv-gives-varying-brightness/1230
+- Ben Hencke, Pixelblaze Getting Started (HDR floor ~0.005) — https://www.bhencke.com/pixelblazegettingstarted
 - This repo: `patterns/egg/lava_lamp.js`, `patterns/egg/cosmic_bloom.js`, `patterns/egg/cube_fire.js` — shipped-on-hardware color idioms
