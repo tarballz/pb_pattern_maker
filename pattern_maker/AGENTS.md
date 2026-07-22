@@ -84,7 +84,8 @@ export function render3D(index, x, y, z) {
   hsv(h, s, v * brightness)
 }
 
-// Include render2D when the math naturally supports it
+// PLACEHOLDER — a reflexive constant-z slice is the anti-pattern Rule 7 forbids;
+// pick the real strategy from references/2d-parity.md's decision tree and replace this body.
 export function render2D(index, x, y) {
   render3D(index, x, y, 0)
 }
