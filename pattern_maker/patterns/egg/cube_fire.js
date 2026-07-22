@@ -259,8 +259,10 @@ export function render3D(index, x, y, z) {
   v = v * v * v
 
   // Ember floor: per-LED, time-varying glow so the egg never goes fully dark
-  // when the sphere waves all bottom out together.
-  ember = 0.04 + 0.06 * wave(x * 2 + y * 2 + z * 2 + t1 * 3)
+  // when the sphere waves all bottom out together. Floor is 0.045, just
+  // above the ~0.04 hard-zero deadband, so it never sits exactly on the
+  // boundary with zero margin.
+  ember = 0.045 + 0.06 * wave(x * 2 + y * 2 + z * 2 + t1 * 3)
   v = max(v, ember)
 
   // Give one sphere per lattice period a brighter core so the eye has a

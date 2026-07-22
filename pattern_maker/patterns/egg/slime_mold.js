@@ -7,8 +7,11 @@
 //
 // 2D strategy: slice (any K) — the drawing phase is purely index-based and
 // ignores z entirely, so 2D parity is free (2d-parity.md Q1/Q2 trivially
-// met). During the one-time mapping phase the neighbor graph is simply built
-// from 2D distances instead. A 1D render() walks the same index-driven sim.
+// met). During the one-time mapping phase the neighbor graph still calls
+// the same hypot3 distance, just with z pinned to a constant 0.5 for every
+// point — since both ends of each pair share that constant, dz is always 0
+// and hypot3 collapses to an effective 2D distance, not a dedicated
+// 2D-distance code path. A 1D render() walks the same index-driven sim.
 //
 // Sliders: Speed scales pixels committed per frame during the growth phase;
 // Brightness scales the output (with gamma, Rule 6). The steady-state paint
@@ -280,7 +283,8 @@ export function render3D(index, x, y, z) {
 
 // 2D strategy: slice (any K) — renderDrawColors is purely index-based and
 // never reads z, so a flat slice loses nothing; during the mapping phase the
-// neighbor graph is just built from 2D distances instead (2d-parity.md).
+// neighbor graph still uses hypot3 with z pinned to a constant 0.5 for both
+// points, which cancels to an effective 2D distance (2d-parity.md).
 export function render2D(index, x, y) {
   render3D(index, x, y, 0.5)
 }

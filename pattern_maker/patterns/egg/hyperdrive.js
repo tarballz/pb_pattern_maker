@@ -9,6 +9,14 @@
 // energy that made the original full-rainbow set feel "high energy." The
 // original full-rainbow palettes are kept intact and reachable — push
 // Psychedelic above halfway to swap back to them.
+//
+// 2D strategy: slice K=0 (2d-parity.md decision-tree Q1) — this is a
+// noise/field phenomenon, not a level-set shape: v1/v2/v3 are traveling
+// waves whose *amplitude* never depends on z, only their phase does (via
+// the z*0.5/z*fz terms), so any constant-z slice samples the same
+// statistical character — braided-filament density and brightness
+// distribution — just phase-shifted relative to another z. K=0 is as
+// valid a plane as any other.
 // Sliders: Speed (animation rate), Brightness (overall intensity),
 //          Psychedelic (0 = house palette set [default], 1 = original
 //          full-rainbow palette set)
@@ -155,6 +163,12 @@ var rainbowPalettes = [harryrainbow_gp, hueshift_gp, luxoorb_gp, Spectrum_gp]
 
 var palettes = housePalettes
 
+// Palette cadence: kept fast (10s hold / 3s crossfade) rather than the
+// house 45s/15s default (motion-design.md "Palette cadence") — this is an
+// intentional, documented deviation, not an oversight. hyperdrive is
+// explicitly the high-energy/psychedelic register (see header); quick
+// palette churn reads as part of that energy, and slowing it to house
+// pace would flatten the character the pattern is going for.
 var PALETTE_HOLD_TIME = 10
 var PALETTE_TRANSITION_TIME = 3
 
@@ -277,6 +291,14 @@ export function beforeRender(delta) {
   t3 = time(tf *  4.9 / 65.536)
 
   huePhase = time(tf * 13.7 / 65.536)
+
+  // Slow global drift, deliberately outside the 24.5-68.5s cluster above
+  // (motion-design.md timescale layering wants layers roughly 4-15x apart;
+  // the taps above only spanned ~2.8x of each other). ~180s at default
+  // speed — breathes the whole field's intensity by +-15% on a pace none
+  // of the other taps approach, so long-viewing reads as one slowly
+  // evolving scene instead of a single flat energy level.
+  slowDrift = time(2.75 / speedMult)
 }
 
 export function render3D(index, x, y, z) {
@@ -291,12 +313,28 @@ export function render3D(index, x, y, z) {
   // The product is already nonlinear (acts as gamma) — no extra v*v needed.
   v = v1 * v2 * v3
 
+  // Slow global drift (see beforeRender): breathes overall intensity by
+  // +-15% on a pace distinct from every other layer here.
+  v = v * (0.85 + 0.3 * wave(slowDrift))
+
+  // Background floor: v1*v2*v3 collapses toward 0 across most of the
+  // volume between filaments, and paint() doesn't floor v itself — clamp
+  // above the ~0.04 hard-zero deadband so the field never drops to true
+  // (0,0,0) (color-craft.md "Background is a color decision"). This reuses
+  // the same paint(h, v) call below, so the floor picks up whatever hue
+  // the interference field/palette give at that point — a colored ambient
+  // glow, not grey.
+  v = max(v, 0.05)
+
   // hue spirals up z with a slight x+y twist; huePhase walks the palette
   h = wave(z * 0.6 + (x + y) * 0.2 + huePhase)
 
   paint(h, v * brightness)
 }
 
+// 2D strategy: slice K=0 — see header. The field's amplitude doesn't
+// depend on z, only phase does, so any constant slice is equally valid
+// (2d-parity.md decision-tree Q1).
 export function render2D(index, x, y) {
   render3D(index, x, y, 0)
 }

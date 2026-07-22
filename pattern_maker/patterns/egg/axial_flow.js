@@ -273,7 +273,17 @@ export function render3D(index, x, y, z) {
   // produces a sharp complementary-color jump at the equator ring.
   var h = (proj > 0 ? 0 : 0.5) + ad + paletteDrift
 
-  paint(h, v * brightness)
+  // v's 0.05 floor above only guarantees a colored ambient glow at
+  // Brightness=1 — multiplying by `brightness` scales that floor right
+  // back down with it, so at low slider settings the effective floor can
+  // drop under the ~0.04 hard-zero deadband and undo the whole point of
+  // having one (color-craft.md "Background is a color decision"). Re-clamp
+  // after the multiply, but only while the pattern is actually on, so
+  // Brightness=0 still means fully off rather than a phantom glow.
+  var vOut = v * brightness
+  if (brightness > 0) vOut = max(vOut, 0.045)
+
+  paint(h, vOut)
 }
 
 // 2D fallback: slice at z == 0. In 2D the axis collapses to a plane
