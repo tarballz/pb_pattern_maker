@@ -7,6 +7,18 @@
   fast micro-shimmer keeps the surface alive. Cosmic jewel palette:
   violet-navy troughs, violet→magenta mid, hot-pink→gold crests.
 
+  2D strategy: RE-PARAMETERIZE (2d-parity.md decision-tree Q3 — the N-fold
+  kaleidoscope is azimuthal). render2D re-derives theta = atan2(y-0.5,
+  x-0.5) around the panel's own center; panel radial distance doubles as
+  both the pole-axis coordinate (center = top pole, edge = bottom pole)
+  and the equatorial-radius analog for the breathing rings. A z=0.5 slice
+  would collapse theta to {0, π} (failure class 1) and erase the petals.
+
+  Raw hsv() (no palette array) is deliberate: three hand-tuned value/
+  saturation zones with a crest hue-shift through red into gold — a 1D
+  gradient palette can't carry independent per-zone saturation
+  (color-craft.md palette-vs-hsv decision guide).
+
   Sliders:
     Speed      — overall animation rate (1x at default)
     Fold       — rotational symmetry count (3..9, default 5)
@@ -133,6 +145,63 @@ export function render3D(index, x, y, z) {
   hsv(h, s, v)
 }
 
+// 2D — RE-PARAMETERIZED, not sliced (see header): theta from
+// atan2(y-0.5, x-0.5) around the panel center; panel radius r maps to
+// the pole-axis coordinate (center = top pole y=1, edge = bottom pole
+// y=0) and also stands in for the equatorial radius driving ringWave,
+// so all four layers stay live instead of theta collapsing to {0, π}.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0.5)
+  var dx = x - 0.5
+  var dy = y - 0.5
+  var theta = atan2(dy, dx)
+  var r = sqrt(dx * dx + dy * dy)
+  if (r > 0.5) r = 0.5
+  var yEquiv = 1 - 2 * r
+
+  var thetaFolded = mod(theta + tSlow, foldInv) * fold
+
+  var petal = sin(thetaFolded * 2 + 0.8 * yEquiv - tSlow * 2)
+
+  // Breathing rings — panel radius is the equatorial-radius analog.
+  var ringWave = sin(3.5 * r - tBreath)
+
+  // Bloom cascade travels center (top pole) → edge (bottom pole).
+  var yWave = sin(yEquiv * 4.5 - tBloom * PI2)
+
+  var shimmer = sin(tShimmer + index * 0.137) * 0.12
+
+  var I = 0.7 * petal + 0.5 * ringWave + 0.5 * yWave + shimmer
+  var In = clamp((I + 1.5) / 3.0, 0, 1)
+
+  // Same cosmic jewel palette zones as render3D.
+  var h, s, v
+  if (In < 0.33) {
+    var tt = In / 0.33
+    h = 0.72
+    s = 0.95
+    v = mix(0.22, 0.40, tt)
+  } else if (In < 0.75) {
+    var tt = (In - 0.33) / 0.42
+    h = mix(0.75, 0.88, tt)
+    s = 0.95
+    v = mix(0.40, 0.78, tt)
+  } else {
+    var tt = (In - 0.75) / 0.25
+    h = mix(0.92, 1.08, tt)
+    s = 0.90
+    v = mix(0.78, 1.0, tt)
+  }
+
+  if (s < 0.35) s = 0.35
+
+  v = v * v
+  v = v * brightness
+  if (v < 0.04) v = 0
+
+  hsv(h, s, v)
+}
+
+// 1D fallback — walk the pole axis (ember_drift.js convention, AGENTS.md).
+export function render(index) {
+  render3D(index, 0.5, index / pixelCount, 0.5)
 }

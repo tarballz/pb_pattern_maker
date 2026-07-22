@@ -15,6 +15,14 @@
   Golden-ratio walk on palette position means adjacent seeds land on
   distinct palette colors — a second hat-tip to φ.
 
+  2D strategy: RE-PARAMETERIZE (2d-parity.md decision-tree Q3 — golden-angle
+  spirals around the pole axis are azimuthal). render2D re-derives theta =
+  atan2(y-0.5, x-0.5) around the panel's own center and maps panel radial
+  distance to depth (center = top pole, edge = bottom pole): the ridges
+  become rotating golden-angle spokes and the wavefronts become expanding
+  rings. A z=0.5 slice would collapse theta to {0, π} (failure class 1),
+  leaving only the wavefronts.
+
   Sliders:
     Speed          — overall animation rate
     Brightness     — global output scale
@@ -303,6 +311,63 @@ export function render3D(index, x, y, z) {
   paint(pos, v)
 }
 
+// 2D — RE-PARAMETERIZED, not sliced (see header): theta from
+// atan2(y-0.5, x-0.5) around the panel center, depth from radial
+// distance (center = top pole, edge = bottom pole). Same math as
+// render3D from seedN onward, with the panel-derived coordinates.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0.5)
+  var dx = x - 0.5
+  var dy = y - 0.5
+  var theta = atan2(dy, dx)
+  var r = sqrt(dx * dx + dy * dy)
+  if (r > 0.5) r = 0.5
+  var depth = 2 * r
+  var seedStatic = depth * seedDensity
+
+  var seedN = seedStatic * densityPulse
+
+  var effSharp = ridgeSharpness * (0.45 + 0.9 * breathRidge)
+
+  var angleA = mod(seedN * GA + tRotateA + PI, PI2) - PI
+  var dA = abs(theta - angleA)
+  if (dA > PI) dA = PI2 - dA
+  var ridgeA = 1 / (1 + dA * dA * effSharp)
+
+  var angleB = mod(seedN * GA - tRotateB + PI * INV_PHI + PI, PI2) - PI
+  var dB = abs(theta - angleB)
+  if (dB > PI) dB = PI2 - dB
+  var ridgeB = 1 / (1 + dB * dB * effSharp * 0.7)
+
+  var ridge = ridgeA + ridgeB - ridgeA * ridgeB
+
+  // Wavefront A: rings expanding from the panel center (the "top pole").
+  var distA = depth - tWaveA
+  if (distA > 0.5) distA -= 1
+  if (distA < -0.5) distA += 1
+  var tailA = distA < 0 ? 7 : 3.5
+  var waveA = 1 / (1 + distA * distA * tailA)
+
+  // Wavefront B: counter-rings contracting from the edge.
+  var distB = depth + tWaveB - 1
+  if (distB > 0.5) distB -= 1
+  if (distB < -0.5) distB += 1
+  var waveB = 1 / (1 + distB * distB * 6)
+
+  var wave = waveA + 0.55 * waveB
+  if (wave > 1.1) wave = 1.1
+
+  var v = baseGlow + (1 - baseGlow) * ridge * wave
+
+  var pos = seedStatic * INV_PHI + theta * 0.1592 * INV_PHI + tDrift
+  pos = pos - floor(pos)
+
+  v = v * v * brightness
+  if (v < 0.04) v = 0
+
+  paint(pos, v)
+}
+
+// 1D fallback — walk the pole axis (ember_drift.js convention, AGENTS.md).
+export function render(index) {
+  render3D(index, 0.5, index / pixelCount, 0.5)
 }

@@ -24,6 +24,14 @@
   All extra time periods are still Fibonacci seconds, so every ratio
   in the stack remains φ — nothing re-syncs, ever.
 
+  2D strategy: RE-PARAMETERIZE (2d-parity.md decision-tree Q3 — the whole
+  concept is azimuthal). render2D re-derives theta = atan2(y-0.5, x-0.5)
+  around the panel's own center and maps panel radial distance to depth
+  (center = top pole, edge = bottom pole), so the spiral families AND all
+  three theta-driven trippy layers (warp, depth wobble, crossing-node
+  bloom) stay live. A z=0.5 slice would collapse theta to {0, π}
+  (2d-parity.md failure class 1) and silently kill all of them at once.
+
   Sliders:
     Speed          — overall animation rate
     Brightness     — global output scale
@@ -182,7 +190,10 @@ var SLOPE13 = -0.466
 var SECT8 = PI2 / 8
 var SECT13 = PI2 / 13
 
-var baseGlow = 0.06
+// Baseline glow between arms. 0.22 keeps the post-gamma floor (baseGlow² ≈
+// 0.048) above the 0.04 dithering deadband — lower values hard-snap the
+// inter-arm valleys to true black (color-craft.md background floors).
+var baseGlow = 0.22
 
 var speed = 1
 var brightness = 1
@@ -308,6 +319,60 @@ export function render3D(index, x, y, z) {
   paint(pos, v)
 }
 
+// 2D — RE-PARAMETERIZED, not sliced (see header): theta from
+// atan2(y-0.5, x-0.5) around the panel center, depth from radial
+// distance (center = top pole, edge = bottom pole). Same math as
+// render3D — warp, wobble, spiral families, and crossing-node bloom
+// all run at full angular range on the panel-derived coordinates.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0.5)
+  var dx = x - 0.5
+  var dy = y - 0.5
+  var theta = atan2(dy, dx)
+  var r = sqrt(dx * dx + dy * dy)
+  if (r > 0.5) r = 0.5
+  var depth = 2 * r
+
+  var warpCarrier = theta * 0.4775 + warpPhase
+  var thetaWarp = (wave(warpCarrier) - 0.5) * 0.22 * warpAmount
+  var thetaW = theta + thetaWarp
+
+  var depthWobble = (wave(theta * INV_PI2 + depthPhase) - 0.5) * 0.08
+  var depthW = depth + depthWobble
+
+  var phase8 = thetaW - SLOPE8 * depthW - rot8
+  var fold8 = mod(phase8 + SECT8 * 0.5, SECT8) - SECT8 * 0.5
+  var arm8 = amp8 / (1 + fold8 * fold8 * armSharpness)
+
+  var phase13 = thetaW - SLOPE13 * depthW - rot13
+  var fold13 = mod(phase13 + SECT13 * 0.5, SECT13) - SECT13 * 0.5
+  var arm13 = amp13 / (1 + fold13 * fold13 * armSharpness * 1.5)
+
+  var combined = arm8 + arm13 - arm8 * arm13
+  var cross = arm8 * arm13
+  var bloom = cross * cross * 3.0 * nodeShimmer
+
+  // 4·depth·(1−depth) is algebraically identical to the 3D 4·y·(1−y)
+  // (depth = 1−y): fades the panel center and edge where the spiral
+  // projection degenerates.
+  var poleFade = 4 * depth * (1 - depth)
+  var v = baseGlow + (combined + bloom) * (0.3 + 0.7 * poleFade)
+
+  var pos
+  if (arm8 * 1.5 > arm13) {
+    pos = phase8 * 0.1591549 + depthW * 0.382 + tDrift
+  } else {
+    pos = phase13 * 0.1591549 + depthW * 0.382 + tDrift + INV_PHI
+  }
+  pos = pos + 0.08 * (wave(depthW * 0.5 + huePulse) - 0.5) + palRetro * 0.15
+  pos = pos - floor(pos)
+
+  v = v * v * brightness
+  if (v < 0.04) v = 0
+
+  paint(pos, v)
+}
+
+// 1D fallback — walk the pole axis (ember_drift.js convention, AGENTS.md).
+export function render(index) {
+  render3D(index, 0.5, index / pixelCount, 0.5)
 }
