@@ -4,8 +4,7 @@ How to arrange layers, depth, and focal interest on a sculpture with no
 frame and no fixed viewing angle — not distance-field/rotation mechanics
 ([`3d-techniques.md`](./3d-techniques.md)), and not color or timing
 ([`color-craft.md`](./color-craft.md), [`motion-design.md`](./motion-design.md)).
-House default is organic, palette-driven, slow-evolving; notes flag
-high-energy/geometric differences.
+House default is organic, palette-driven, slow-evolving.
 
 ## The layer stack
 
@@ -129,17 +128,19 @@ spacings is the workhorse: crisp but stable. Size `w` in map units per LED
 
 **Glow falloff.** `1/d` (standard Shadertoy glow) has a long tail that lifts
 the sculpture's floor even after clamping. Gaussian-support falloff has
-finite extent, no floor-lift, no clipped core — prefer it as default.
+finite extent, no floor-lift, no clipped core — untested hypothesis on this
+hardware, but preferred by default for that bounded support.
 
 | Profile | Formula | Reading on LEDs |
 |---|---|---|
 | Hard shell | `d < 0 ? 1 : 0` | Aliases — avoid |
 | Smoothstep shell | `smoothstep(w, -w, d)` | Workhorse edge, `w` sized to LED pitch |
 | Inverse glow | `k / d`, clamped | Long tail lifts the floor — window it |
-| Gaussian glow | `exp(-k·d²)` ≈ `pow(max(0, 1 - d*d/sigma2), 2)` | Best default: compact, no floor-lift |
+| Gaussian glow | `exp(-k·d²)` ≈ `pow(max(0, 1 - d*d/sigma2), 2)` | Untested-preferred default: compact, no floor-lift |
 
-Minimum readable feature size ~3 LED spacings — smaller strobes between
-pixels as it moves. Gamma (`v*v`) goes after compositing, not before — see
+Minimum readable feature size ~3 LED spacings (untested hypothesis, Nyquist
+reasoning — calibrate on-sculpture) — smaller strobes between pixels as it
+moves. Gamma (`v*v`) goes after compositing, not before — see
 [`color-craft.md`](./color-craft.md#gamma-as-aesthetics) for placement.
 
 ```js
