@@ -7,7 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 PixelBlaze LED art project with two subprojects:
 
 - **Pattern authoring** (`pattern_maker/`) — Knowledge system that makes Claude an expert PixelBlaze pattern author. See `pattern_maker/AGENTS.md` for the full system prompt and rules. Has its own `CLAUDE.md` with pattern-specific commands and conventions. LED coordinate maps (scanned via [marimapper](https://github.com/TheMariday/marimapper)) live under `pattern_maker/maps/`.
-- **Palette maker** (`palette_maker/`) — Turns cpt-city palette URLs (or fuzzy color descriptions) into PixelBlaze-ready gradient-palette blocks. Ships a `palette` skill (at `palette_maker/.claude/skills/palette/`) and a committed index of 6000+ palettes. Has its own `CLAUDE.md`. Launch Claude Code from the `pb/` root (not from `pattern_maker/`) so the skill is discoverable while authoring patterns.
+- **Palette maker** (`palette_maker/`) — Turns cpt-city palette URLs (or fuzzy color descriptions) into PixelBlaze-ready gradient-palette blocks. Ships a `palette` skill (at `palette_maker/.claude/skills/palette/`) and a committed index of 6000+ palettes. Has its own `CLAUDE.md`. Launch Claude Code from the repo root (not from `pattern_maker/`) so the skill is discoverable while authoring patterns.
+
+A companion emulator lives outside this repo at `~/code/pb/pixelblaze-pattern-emulator` (Vite + Three.js). It executes patterns against real maps without hardware and mounts this repo's `patterns/` and `maps/` dirs via its `.env.local`. Use it to preview patterns during authoring (`npm run dev` there).
 
 ## Commands
 
@@ -27,11 +29,20 @@ cd pattern_maker && uv run python validate.py examples/                     # ex
 cd pattern_maker && uv run pytest test_validate.py
 ```
 
+### Device CLI (run from `pattern_maker/`; device on LAN, address via `--server`/`$PB_SERVER`/discovery)
+
+```bash
+cd pattern_maker && uv run python pb.py compile patterns/egg/foo.js   # real bytecode compile check
+cd pattern_maker && uv run python pb.py push patterns/egg/foo.js      # live trial (--save to keep)
+cd pattern_maker && uv run python pb.py devices                       # discover / list / vars / backup / frame
+```
+
 ### Palette maker (run from `palette_maker/`)
 
 ```bash
 cd palette_maker && uv run python palette.py url <cpt-city-url>   # URL → PB gradient block
 cd palette_maker && uv run python palette.py show <slug>          # look up a palette by slug from the index
+cd palette_maker && uv run python palette.py insert <slug> <pattern.js>  # insert into a pattern's palettes array
 cd palette_maker && uv run pytest                                 # tests
 ```
 
@@ -46,12 +57,13 @@ marimapper_upload_mapping_to_pixelblaze --server <ip>  # upload led_map_3d.csv
 ## Architecture
 
 ```
-pb/
+pb_pattern_maker/
 ├── pattern_maker/        # PixelBlaze pattern authoring system
 │   ├── AGENTS.md         # System prompt — Claude as PB pattern expert
 │   ├── CLAUDE.md         # Pattern-specific commands/conventions
-│   ├── validate.py       # Static analysis enforcing PB safety rules
+│   ├── validate.py       # AST-based static analysis enforcing PB safety rules
 │   ├── test_validate.py  # pytest tests for the validator
+│   ├── pb.py             # Device CLI: compile (real PB compiler), push, backup, vars
 │   ├── references/       # Language, safety, techniques, waveforms docs
 │   ├── examples/         # Reference patterns (geometric/, organic/, utility/)
 │   ├── patterns/         # User patterns organized by project (e.g. patterns/egg/)

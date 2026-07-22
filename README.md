@@ -20,6 +20,10 @@ uv run python validate.py examples/
 
 # Run the validator tests
 uv run pytest test_validate.py
+
+# Talk to the device (compile with the real PB compiler, push, back up)
+uv run python pb.py compile patterns/egg/lava_lamp.js
+uv run python pb.py push patterns/egg/lava_lamp.js --save
 ```
 
 Layout:
@@ -60,7 +64,12 @@ marimapper pixelblaze --server <ip>                    # scan (run from the targ
 marimapper_upload_mapping_to_pixelblaze --server <ip>  # upload led_map_3d.csv
 ```
 
+## Previewing Patterns
+
+A companion emulator lives at [`~/code/pb/pixelblaze-pattern-emulator`](https://github.com/tarballz/pixelblaze-pattern-emulator) — a Vite + Three.js web app that runs pattern JS against real maps (marimapper CSV, PixelBlaze JSON, mapper functions, `.epe`) without hardware. Its `.env.local` mounts this repo's `pattern_maker/patterns/` and `pattern_maker/maps/` so patterns can be browsed, live-rendered, and autosaved from the browser. Note it uses float math and real JS, so device-only failures (fixed-point overflow, unsupported syntax) still need `validate.py` and a hardware test.
+
 ## Projects
 
 - **egg** — 3D egg sculpture (~1400–1500 LEDs), the first installation. Patterns in `pattern_maker/patterns/egg/`, map in `pattern_maker/maps/egg_mapping/`.
 - **zranger_2d_3d** — 2D/3D pattern collection in `pattern_maker/patterns/zranger_2d_3d/`.
+- **jacket** — planned wearable; `jacket.txt` at the repo root is a traced 2D LED coordinate outline (JSON array of `[x, y]` pixel positions) awaiting conversion into a map under `pattern_maker/maps/`.
