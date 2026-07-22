@@ -11,7 +11,7 @@
 
   Techniques demonstrated:
     - Designed value-shape: tinted ambient (v 0.09) -> near-black valley
-      (~0.03 at heat 0.12) -> gamma'd saturated ramp -> bright highlight;
+      (~0.05 at heat 0.12) -> gamma'd saturated ramp -> bright highlight;
       the luminance curve was designed first, hues second
       (color-craft.md#palette-craft).
     - Colored background floor: the coldest pixel still emits a dim, fully

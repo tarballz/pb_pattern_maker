@@ -23,10 +23,12 @@ is a shipped defect, not an acceptable trade-off.
 
 ## The five strategies
 
-Pick one *before* writing `render2D`. In order of how often the repo actually
-needs them (27 of 30 dual-renderer patterns slice; only 1 re-parameterizes;
-project and re-compose are currently unused but are the right fix for
-several failing patterns):
+Pick one *before* writing `render2D`. At audit time (2026-07), 27 of 30
+dual-renderer patterns sliced, only `kaleidoscope.js` re-parameterized, and
+project/re-compose were unused. The repo has since grown two more non-slice
+exemplars — `beacon_sweep.js` re-parameterizes (strategy c) and
+`sea_sparkle.js` projects via drop-a-term for its point-event flashes
+(strategy b) — but slice remains the dominant strategy in the repo:
 
 ### a. Slice — constant K, when the field is planar-honest
 
@@ -138,9 +140,12 @@ Ask in order; take the first branch that fits.
 `atan2(0, x - 0.5)`, which only ever evaluates to `0` or `π`. Every
 angle-driven term becomes a two-valued step function of `sign(x - 0.5)`.
 This single bug class killed the entire fibonacci family (`fibonacci_bloom.js`,
-`_plain`, `_rotate`, `fibonacci_dream.js`, plus the duplicate
-`orbital_cloud.js`) and `cosmic_bloom.js` — five shipped files, 100% of the
-angle-dependent content gone, leaving only depth-driven terms.
+`_plain`, `_rotate`, `fibonacci_dream.js`) and `cosmic_bloom.js` — four shipped
+files, 100% of the angle-dependent content gone, leaving only depth-driven
+terms. `orbital_cloud.js` had the identical bug at audit time (2026-07) — not
+a duplicate of the fibonacci family, but a distinct spherical-harmonic
+pattern that happened to hit the same failure class — and has since been
+re-parameterized to fix it.
 *Fix:* re-parameterize — recompute the azimuth from the 2D domain itself
 (`atan2(y - 0.5, x - 0.5)`), as `kaleidoscope.js` already does. **Audit every
 `atan2` in `render3D`: if its two arguments can't both vary once the third

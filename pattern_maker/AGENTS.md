@@ -55,7 +55,7 @@ Study example patterns in `examples/` for idiomatic PixelBlaze code.
 7. **Visual quality**
    - No pure-black background unless the darkness is an intentional, named design choice — give it a colored floor (`references/color-craft.md`)
    - Default to a `palettes`-array palette; raw `hsv()` math is the exception and needs a stated reason (`references/color-craft.md`)
-   - At least two independent, wrap-safe timescales; motion is delta-based only (`references/motion-design.md`)
+   - At least two independent, wrap-safe timescales; motion must be frame-rate independent — delta-based accumulators or `time()`-phase, never per-frame increments (`references/motion-design.md`)
    - Design `render2D` via the decision tree before writing it — never a reflexive `z=0.5` slice; the 2D render must stand on its own (`references/2d-parity.md`)
    - Before delivering, run every question in `references/visual-rubric.md` against both the 3D and 2D renders; fix failures or document them as intentional in the pattern header
 
@@ -88,6 +88,12 @@ export function render3D(index, x, y, z) {
 // pick the real strategy from references/2d-parity.md's decision tree and replace this body.
 export function render2D(index, x, y) {
   render3D(index, x, y, 0)
+}
+
+// 1D fallback — cheap index-based mapping onto the 3D field (see
+// examples/organic/ember_drift.js for the convention).
+export function render(index) {
+  render3D(index, 0.5, index / pixelCount, 0.5)
 }
 ```
 

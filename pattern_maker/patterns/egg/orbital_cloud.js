@@ -18,6 +18,12 @@
                                               get opposite halves of the palette,
                                               so nodal surfaces read as color borders)
 
+  2D strategy: RE-PARAMETERIZE (2d-parity.md decision-tree Q3 — azimuthal
+  symmetry). The panel is an azimuthal-projection of the sphere: its center
+  is the pole (mu=1), its edge is the far pole (mu=-1), and phi is re-derived
+  as atan2(y-0.5, x-0.5) around the panel center — never sliced through the
+  3D axis, which collapses phi to two values (2d-parity.md failure class 1).
+
   Sliders:
     Speed       — overall animation rate
     Brightness  — global output scale
@@ -336,6 +342,56 @@ export function render3D(index, x, y, z) {
   paint(pos, v)
 }
 
+// 2D — RE-PARAMETERIZED, not sliced (see header): the panel is treated as
+// its own polar plane. phi comes from atan2(y-0.5, x-0.5) around the panel
+// center, and mu (the pole-to-pole coordinate) comes from radial distance —
+// center = pole, edge = far pole — so both azimuthal and polar harmonic
+// terms stay live instead of atan2(z-0.5, x-0.5) collapsing phi to 0/PI at
+// a fixed-z slice.
 export function render2D(index, x, y) {
-  render3D(index, x, y, 0.5)
+  var dx = x - 0.5
+  var dy = y - 0.5
+  var phi = atan2(dy, dx)
+  var r = sqrt(dx * dx + dy * dy)
+  if (r > 0.5) r = 0.5
+  var mu = 1 - 4 * r
+  var s2_init = 1 - mu * mu
+  if (s2_init < 0) s2_init = 0
+  var sinTh = sqrt(s2_init)
+  var cphi = cos(phi)
+  var sphi = sin(phi)
+
+  // ── Rotate (cphi, sphi) by precession ─────────────────────
+  var cP = cphi * cosPre - sphi * sinPre
+  var sP = cphi * sinPre + sphi * cosPre
+
+  // ── Derived terms (no transcendentals) ────────────────────
+  var mu2 = mu * mu
+  var s2  = sinTh * sinTh           // = 1 - mu²
+  var c2P = cP * cP - sP * sP       // cos(2φ)
+  var s2P = 2 * cP * sP             // sin(2φ)
+
+  // ── Evaluate Ψ = Σ cᵢ · Yᵢ ───────────────────────────────
+  var psi =
+      coeff[0]
+    + coeff[1] * mu
+    + coeff[2] * sinTh * cP
+    + coeff[3] * sinTh * sP
+    + coeff[4] * (3 * mu2 - 1) * 0.5
+    + coeff[5] * s2 * c2P
+    + coeff[6] * s2 * s2P
+    + coeff[7] * (5 * mu2 - 3) * mu * 0.5
+    + coeff[8] * mu * s2 * c2P
+
+  // ── Brightness ∝ Ψ², gamma-shaped, with breath ───────────
+  var v = psi * psi * breath * brightness
+  if (v > 1) v = 1
+  if (v < 0.04) v = 0
+
+  // ── Hue: sign-driven palette split + slow drift ──────────
+  var pos = huePhase + 0.15 * mu
+  if (psi < 0) pos = pos + 0.5
+  pos = pos - floor(pos)
+
+  paint(pos, v)
 }
