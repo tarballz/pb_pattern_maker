@@ -19,6 +19,26 @@ def render_swatch(stops: list[Stop], width: int = 48) -> str:
     return "".join(cells)
 
 
+def render_html(stops: list[Stop], title: str = "palette") -> str:
+    """Render the palette as a standalone HTML gradient swatch.
+
+    Portable alternative to the ANSI swatch — viewable anywhere, not just
+    truecolor terminals.
+    """
+    sorted_stops = sorted(stops, key=lambda s: s.pos)
+    css_stops = ", ".join(
+        f"rgb({s.r},{s.g},{s.b}) {s.pos / 255:.1%}" for s in sorted_stops
+    )
+    return (
+        "<!doctype html>\n"
+        f"<title>{title}</title>\n"
+        '<body style="margin:0;background:#111;display:grid;place-items:center;min-height:100vh">\n'
+        f'<div style="width:min(90vw,640px);height:96px;border-radius:8px;'
+        f'background:linear-gradient(90deg, {css_stops})"></div>\n'
+        "</body>\n"
+    )
+
+
 def _sample(stops: list[Stop], pos: int) -> tuple[int, int, int]:
     if pos <= stops[0].pos:
         s = stops[0]

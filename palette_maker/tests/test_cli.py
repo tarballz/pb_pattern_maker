@@ -226,3 +226,97 @@ class TestShow:
         assert exit_code == 0
         out = capsys.readouterr().out
         assert "//https://phillips.shef.ac.uk/pub/cpt-city/bob/coll_b/shared" in out
+
+
+PATTERN_SOURCE = """\
+var old_gp = [
+    0, 255,  0,  0,
+  255,   0,  0,255]
+
+arrayMutate(old_gp,(v, i ,a) => v / 255);
+
+var palettes = [old_gp]
+
+export function beforeRender(delta) { t1 = time(0.1) }
+export function render(index) { hsv(0, 0, 1) }
+"""
+
+
+class TestInsert:
+    def test_inserts_and_registers_palette(self, mini_index, tmp_path, capsys):
+        pattern = tmp_path / "pattern.js"
+        pattern.write_text(PATTERN_SOURCE)
+
+        exit_code = run(
+            ["insert", "bhw1_05", str(pattern), "--index", str(mini_index), "--no-preview"]
+        )
+
+        assert exit_code == 0
+        updated = pattern.read_text()
+        assert "var bhw1_05_gp = [" in updated
+        assert "var palettes = [old_gp, bhw1_05_gp]" in updated
+        assert updated.index("var bhw1_05_gp") < updated.index("var palettes")
+        assert "inserted bhw1_05" in capsys.readouterr().err
+
+    def test_duplicate_insert_fails_and_preserves_file(self, mini_index, tmp_path, capsys):
+        pattern = tmp_path / "pattern.js"
+        pattern.write_text(PATTERN_SOURCE)
+        run(["insert", "bhw1_05", str(pattern), "--index", str(mini_index), "--no-preview"])
+        once = pattern.read_text()
+
+        exit_code = run(
+            ["insert", "bhw1_05", str(pattern), "--index", str(mini_index), "--no-preview"]
+        )
+
+        assert exit_code != 0
+        assert pattern.read_text() == once
+        assert "already defined" in capsys.readouterr().err
+
+    def test_pattern_without_palettes_array_fails(self, mini_index, tmp_path, capsys):
+        pattern = tmp_path / "pattern.js"
+        pattern.write_text("export function render(index) { hsv(0, 0, 1) }\n")
+
+        exit_code = run(
+            ["insert", "bhw1_05", str(pattern), "--index", str(mini_index), "--no-preview"]
+        )
+
+        assert exit_code != 0
+        assert "palettes" in capsys.readouterr().err
+
+    def test_nonexistent_slug_leaves_file_untouched(self, mini_index, tmp_path, capsys):
+        pattern = tmp_path / "pattern.js"
+        pattern.write_text(PATTERN_SOURCE)
+
+        exit_code = run(
+            ["insert", "nope", str(pattern), "--index", str(mini_index), "--no-preview"]
+        )
+
+        assert exit_code != 0
+        assert pattern.read_text() == PATTERN_SOURCE
+
+
+class TestHtmlSwatch:
+    def test_show_writes_html_swatch(self, mini_index, tmp_path, capsys):
+        out = tmp_path / "swatch.html"
+
+        exit_code = run(
+            ["show", "bhw1_05", "--index", str(mini_index), "--no-preview", "--html", str(out)]
+        )
+
+        assert exit_code == 0
+        html = out.read_text()
+        assert "linear-gradient(90deg" in html
+        assert "rgb(" in html
+        assert str(out) in capsys.readouterr().err
+
+
+@respx.mock
+def test_scheme_url_uses_scheme_slug_default(capsys):
+    scheme = "https://phillips.shef.ac.uk/pub/cpt-city/resource/schemes/402974"
+    respx.get(scheme).mock(return_value=httpx.Response(200, text=CSS_BODY))
+
+    exit_code = run(["url", scheme, "--no-preview"])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "var scheme_402974_gp = [" in out

@@ -9,8 +9,7 @@ blocks (the `var <name>_gp = [...]` + `arrayMutate(...)` form used in
 `pattern_maker/patterns/egg/hc_pat.js`).
 
 It's a top-level sibling to `pattern_maker/`, not nested, because its logic is
-pattern-language-agnostic and it will grow its own committed data (palette
-index in Phase 2).
+pattern-language-agnostic and it owns its own committed data (the palette index).
 
 ## Commands
 
@@ -22,6 +21,8 @@ uv run python palette.py url <cpt-city-url>         # fetch + format a palette (
 uv run python palette.py url <cpt-city-url> --no-preview  # suppress the swatch
 uv run python palette.py show <slug>                # print the indexed palette's block (+ swatch)
 uv run python palette.py show <slug> --author <a> --collection <c>  # disambiguate shared slugs
+uv run python palette.py show <slug> --html swatch.html  # also write a portable HTML swatch
+uv run python palette.py insert <slug> <pattern.js> # insert block + register in `var palettes = [...]`
 uv run python palette.py index build --source <cpt-city-clone>  # (re)build data/cpt_city_index.jsonl
 uv run pytest                                       # all tests
 uv run pytest tests/test_urls.py -v                 # one test file
@@ -79,7 +80,8 @@ git add data/cpt_city_index.jsonl && git commit -m "chore: refresh palette index
 `index build` accepts `--limit N` for smoke tests and `--output <path>` to
 write somewhere other than the default. Layout it expects inside the level-2
 tree: `<source>/<author>/<collection>/<slug>.c3g` (what `make level-2`
-produces).
+produces); `.css` files with the same layout are also accepted (used by the
+test fixtures).
 
 ### Troubleshooting
 
@@ -96,7 +98,9 @@ produces).
 
 ## Conventions
 
-- Source package: `palette_maker/` (urls, parse, format, fetch, cli).
+- Source package: `palette_maker/` (urls, parse, format, fetch, cli, index, insert, preview, score).
+- `score.py` holds the shared discovery helpers (luminance/saturation/warmth, name sets)
+  used by the `palette` skill's fuzzy-search path.
 - CLI shim: `palette.py` at the subproject root — entry point for `uv run python palette.py ...`.
 - Fixtures live in `tests/fixtures/` (real cpt-city CSS exports).
 - No network in tests — HTTP is mocked with `respx`.
@@ -104,8 +108,10 @@ produces).
 
 ## Phase status
 
-Phase 1 (current): URL → block. Supports collection URLs, legacy mirror URLs,
+Phase 1 (done): URL → block. Supports collection URLs, legacy mirror URLs,
 and direct `resource/schemes/<id>` URLs.
 
-Phase 2 (not built): `search`, `show`, `index` subcommands for conversational
-palette discovery. See the plan file that drove this work for details.
+Phase 2 (done): `show` and `index build` subcommands plus the committed
+6000+-palette index. Conversational discovery is handled by the `palette`
+skill, which scores the index with ad-hoc inline Python rather than a fixed
+`search` subcommand (see `.claude/skills/palette/SKILL.md`).
