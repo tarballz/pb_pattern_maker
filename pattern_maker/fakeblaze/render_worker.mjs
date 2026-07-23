@@ -197,12 +197,14 @@ const handlers = {
       info.fn(i, nx, ny, nz, pc)
       vm.readPixel(rgbFloat, i)
     }
+    let nan = 0
     for (let i = 0; i < rgbFloat.length; i++) {
       const v = rgbFloat[i]
+      if (v !== v) nan++
       // NaN fails both comparisons and lands on 0.
       rgbBytes[i] = v >= 1 ? 255 : v > 0 ? (v * 255 + 0.5) | 0 : 0
     }
-    return { ok: true, rgb: rgbBytes.toString('base64') }
+    return { ok: true, rgb: rgbBytes.toString('base64'), nan }
   },
 
   getVars() {

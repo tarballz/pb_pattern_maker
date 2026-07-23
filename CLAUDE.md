@@ -29,13 +29,15 @@ cd pattern_maker && uv run python validate.py examples/                     # ex
 cd pattern_maker && uv run pytest test_validate.py
 ```
 
-### Device CLI (run from `pattern_maker/`; device on LAN, address via `--server`/`$PB_SERVER`/discovery)
+### Device CLI (run from `pattern_maker/`; `compile`/`render`/`perf` need no hardware, the rest take a device via `--server`/`$PB_SERVER`/discovery — real or `uv run python -m fakeblaze`)
 
 ```bash
-cd pattern_maker && uv run python pb.py compile patterns/egg/foo.js   # real bytecode compile check
+cd pattern_maker && uv run python pb.py compile patterns/egg/foo.js   # real bytecode compile check (offline via cached compiler)
+cd pattern_maker && uv run python pb.py render patterns/egg/foo.js --map maps/egg_mapping/led_map_3d.csv  # headless render, no hardware
 cd pattern_maker && uv run python pb.py push patterns/egg/foo.js      # live trial (--save to keep)
 cd pattern_maker && uv run python pb.py devices                       # discover / list / vars / backup / frame
 cd pattern_maker && uv run python pb.py perf patterns/egg/foo.js --map maps/egg_mapping/led_map_3d.csv  # est. hardware FPS (no device)
+cd pattern_maker && uv run python pb.py fetch-compiler                # one-time with real hardware: enable offline compile
 ```
 
 ### Palette maker (run from `palette_maker/`)
@@ -64,7 +66,8 @@ pb_pattern_maker/
 │   ├── CLAUDE.md         # Pattern-specific commands/conventions
 │   ├── validate.py       # AST-based static analysis enforcing PB safety rules
 │   ├── test_validate.py  # pytest tests for the validator
-│   ├── pb.py             # Device CLI: compile (real PB compiler), push, backup, vars
+│   ├── pb.py             # Device CLI: offline compile, headless render, push, backup, vars
+│   ├── compiler.py       # Offline compilation via the cached device compiler
 │   ├── references/       # Language, safety, techniques, waveforms docs
 │   ├── examples/         # Reference patterns (geometric/, organic/, utility/)
 │   ├── patterns/         # User patterns organized by project (e.g. patterns/egg/)

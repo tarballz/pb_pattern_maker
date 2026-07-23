@@ -121,12 +121,19 @@ export function render(index) {
 4. Run every question in `references/visual-rubric.md` against both the 3D and 2D
    renders; fix failures or document them as intentional in the pattern header
 5. Run `uv run python validate.py <file>` — must pass with no errors
-6. If the device is reachable, run `uv run python pb.py compile <file>` — this compiles
-   with the real PixelBlaze compiler and is the definitive syntax check
-7. Deliver with `uv run python pb.py push <file>` for a live trial (add `--save` to keep
-   it), or tell the user to paste into the web editor if the device is offline
-8. For visual iteration without hardware, the emulator at
-   `~/code/pb/pixelblaze-pattern-emulator` renders patterns on the real maps (`npm run dev`)
-9. To check the performance budget without a device, run
-   `uv run python pb.py perf <file> --map <map.csv>` — it needs no device, reporting
-   estimated hardware FPS and whether the pattern is compute- or output-bound
+6. Run `uv run python pb.py render <file> --map <map.csv>` — headless execution
+   against the real map, no hardware needed; check maxRGB > 0, no NaN, and a sane
+   black fraction (add `-o <dir>` for PPM frames, `--json` for the summary)
+7. Run `uv run python pb.py compile <file>` — this compiles with the real PixelBlaze
+   compiler and is the definitive syntax check. It works offline once
+   `pb fetch-compiler` has cached the device compiler (already done on this machine);
+   only if there is no cache does it need a reachable device
+8. Deliver with `uv run python pb.py push <file>` for a live trial (add `--save` to
+   keep it) — against real hardware, or a local fake device started with
+   `uv run python -m fakeblaze --map <map.csv>`. If neither is running, tell the
+   user to paste into the web editor
+9. For visual iteration, the emulator at `~/code/pb/pixelblaze-pattern-emulator`
+   renders patterns on the real maps (`npm run dev`)
+10. To check the performance budget without a device, run
+    `uv run python pb.py perf <file> --map <map.csv>` — it needs no device, reporting
+    estimated hardware FPS and whether the pattern is compute- or output-bound

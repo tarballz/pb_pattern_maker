@@ -102,6 +102,8 @@ class RenderWorker:
         self._ids = itertools.count(1)
         self._started = False
 
+        self.last_frame_nan = 0  # NaN channel-values in the most recent frame
+
         self._last_frame: bytes | None = None
         self._last_vars: dict = {}
         self._last_pattern: tuple[str, str] | None = None  # (source, name)
@@ -184,6 +186,7 @@ class RenderWorker:
             if resp is not None and resp.get("ok"):
                 rgb = b64decode(resp["rgb"])
                 self._last_frame = rgb
+                self.last_frame_nan = int(resp.get("nan", 0))
                 return rgb
             if self._last_frame is not None:
                 return self._last_frame

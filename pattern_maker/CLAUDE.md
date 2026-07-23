@@ -24,19 +24,32 @@ Validate examples:
 uv run python validate.py examples/
 ```
 
-Device CLI (`pb.py`, wraps [pixelblaze-client](https://github.com/zranger1/pixelblaze-client);
-needs the device on the LAN — address from `--server`, `$PB_SERVER`, or discovery):
+Device CLI (`pb.py`, wraps [pixelblaze-client](https://github.com/zranger1/pixelblaze-client)).
+`compile`, `render`, and `perf` need no hardware; the rest need a device on the LAN
+(address from `--server`, `$PB_SERVER`, or discovery) — real, or a local fake one
+started with `uv run python -m fakeblaze --map maps/egg_mapping/led_map_3d.csv`:
 ```bash
+uv run python pb.py compile patterns/egg/foo.js  # true bytecode compile check — offline,
+                                                 # via the cached device compiler
+uv run python pb.py render patterns/egg/foo.js --map maps/egg_mapping/led_map_3d.csv \
+    --frames 3 -o /tmp/frames --json             # headless render: PPM frames + summary
+uv run python pb.py perf patterns/egg/foo.js --map maps/egg_mapping/led_map_3d.csv  # est. hardware FPS (no device)
+uv run python pb.py fetch-compiler               # one-time, real hardware: cache the compiler
+                                                 # (--seed-fakeblaze also stashes the webUI)
 uv run python pb.py devices                      # discover Pixelblazes
-uv run python pb.py compile patterns/egg/foo.js  # true bytecode compile check
 uv run python pb.py push patterns/egg/foo.js     # live trial (not saved)
 uv run python pb.py push patterns/egg/foo.js --save  # save to the device
 uv run python pb.py list                         # patterns on the device
 uv run python pb.py vars [speed=0.5 ...]         # read/set exported vars
 uv run python pb.py backup egg.pbb               # full device backup
-uv run python pb.py frame -o frame.ppm           # snapshot the preview frame
-uv run python pb.py perf patterns/egg/foo.js --map maps/egg_mapping/led_map_3d.csv  # est. hardware FPS (no device)
+uv run python pb.py frame -o frame.ppm           # snapshot the device's preview frame
+uv run python pb.py frame --sim --pattern patterns/egg/foo.js \
+    --map maps/egg_mapping/led_map_3d.csv        # same, but via the emulator VM
 ```
+
+The cached compiler (`~/.config/pixelblaze/compiler_cache/`) and the fakeblaze
+data dir (`.fakeblaze/`) hold Electromage's proprietary compiler/webUI — never
+commit either (this repo is public; `.fakeblaze/` ignores itself).
 
 ## Conventions
 
